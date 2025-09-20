@@ -1,0 +1,28 @@
+{"table_name": "sc_daily_schedule", "description": "Derived daily schedule combining route, trip, stop, and timing information", "clustering": ["feed_hash", "route_id", "trip_id", "stop_sequence"], "partitioning": {"type": "DAY", "field": "service_date_dt"}}
+{"name": "service_date", "type": "INTEGER", "mode": "REQUIRED", "description": "Date for which this schedule applies"}
+{"name": "service_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for the service"}
+{"name": "route_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for the route"}
+{"name": "trip_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for the trip"}
+{"name": "stop_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for the stop"}
+{"name": "route_short_name", "type": "STRING", "mode": "NULLABLE", "description": "Short name of the route"}
+{"name": "route_type", "type": "INTEGER", "mode": "NULLABLE", "description": "Type of transportation used on the route"}
+{"name": "direction_id", "type": "INTEGER", "mode": "NULLABLE", "description": ""}
+{"name": "trip_headsign", "type": "STRING", "mode": "NULLABLE", "description": "Text that appears on signage identifying the trip"}
+{"name": "stop_headsign", "type": "STRING", "mode": "NULLABLE", "description": "Text that appears on signage identifying the trip"}
+{"name": "shape_id", "type": "STRING", "mode": "NULLABLE", "description": "Shape identifier for the trip"}
+{"name": "shape_dist_traveled", "type": "FLOAT", "mode": "NULLABLE", "description": "Distance traveled along the shape from the first stop"}
+{"name": "stop_sequence", "type": "INTEGER", "mode": "NULLABLE", "description": "Order of stops for this trip"}
+{"name": "stop_code", "type": "STRING", "mode": "NULLABLE", "description": "Code of the stop"}
+{"name": "stop_name", "type": "STRING", "mode": "NULLABLE", "description": "Name of the stop"}
+{"name": "stop_lat", "type": "FLOAT", "mode": "NULLABLE", "description": "Latitude of the stop"}
+{"name": "stop_lon", "type": "FLOAT", "mode": "NULLABLE", "description": "Longitude of the stop"}
+{"name": "scheduled_arrival_time", "type": "STRING", "mode": "NULLABLE", "description": ""}
+{"name": "scheduled_departure_time", "type": "STRING", "mode": "NULLABLE", "description": ""}
+{"name": "scheduled_arrival", "type": "TIMESTAMP", "mode": "NULLABLE", "description": ""}
+{"name": "scheduled_departure", "type": "TIMESTAMP", "mode": "NULLABLE", "description": ""}
+{"name": "scheduled_arrival_s", "type": "INTEGER", "mode": "NULLABLE", "description": "Scheduled arrival in seconds since service day midnight"}
+{"name": "scheduled_departure_s", "type": "INTEGER", "mode": "NULLABLE", "description": "Scheduled departure in seconds since service day midnight"}
+{"name": "service_date_dt", "type": "DATE", "mode": "REQUIRED", "description": "Service date as a date object"}
+{"name": "feed_hash", "type": "STRING", "mode": "REQUIRED", "description": "Hash of the GTFS feed for data lineage"}
+{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
+{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}

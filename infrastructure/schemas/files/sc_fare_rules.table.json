@@ -1,0 +1,9 @@
+{"table_name": "sc_fare_rules", "description": "Fare rules and zone restrictions from GTFS schedule feeds", "clustering": ["feed_hash", "fare_rules_fare_id", "route_id"]}
+{"name": "fare_rules_fare_id", "type": "STRING", "mode": "REQUIRED", "description": "Fare identifier for this rule"}
+{"name": "route_id", "type": "STRING", "mode": "NULLABLE", "description": "Route identifier for this fare rule"}
+{"name": "origin_id", "type": "STRING", "mode": "NULLABLE", "description": "Origin zone identifier for this fare rule"}
+{"name": "destination_id", "type": "STRING", "mode": "NULLABLE", "description": "Destination zone identifier for this fare rule"}
+{"name": "contains_id", "type": "STRING", "mode": "NULLABLE", "description": "Zone identifier that must be contained in the trip"}
+{"name": "feed_hash", "type": "STRING", "mode": "REQUIRED", "description": "Hash of the GTFS feed for data lineage"}
+{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
+{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}

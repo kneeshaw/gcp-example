@@ -1,0 +1,12 @@
+{"table_name": "sc_agency", "description": "Transit agency information from GTFS schedule feeds", "clustering": ["feed_hash"]}
+{"name": "agency_id", "type": "STRING", "mode": "NULLABLE", "description": "Unique identifier for the agency"}
+{"name": "agency_name", "type": "STRING", "mode": "REQUIRED", "description": "Full name of the agency"}
+{"name": "agency_url", "type": "STRING", "mode": "REQUIRED", "description": "URL of the agency"}
+{"name": "agency_timezone", "type": "STRING", "mode": "REQUIRED", "description": "Timezone of the agency"}
+{"name": "agency_lang", "type": "STRING", "mode": "NULLABLE", "description": "Primary language used by the agency"}
+{"name": "agency_phone", "type": "STRING", "mode": "NULLABLE", "description": "Voice telephone number of the agency"}
+{"name": "agency_fare_url", "type": "STRING", "mode": "NULLABLE", "description": "URL of a web page with fare information"}
+{"name": "agency_email", "type": "STRING", "mode": "NULLABLE", "description": "Email address of the agency"}
+{"name": "feed_hash", "type": "STRING", "mode": "REQUIRED", "description": "Hash of the GTFS feed for data lineage"}
+{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
+{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}

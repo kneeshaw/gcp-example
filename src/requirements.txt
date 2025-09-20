@@ -1,0 +1,33 @@
+# Top-level production dependencies for unified codebase
+# Transform & validation
+pandas>=2.1.0
+pandera>=0.18.0
+numpy>=1.24.0
+pandas-gbq>=0.26.1
+
+# BigQuery & GCP (includes all services needed by workers and enqueuers)
+google-cloud-bigquery>=3.25.0
+google-cloud-bigquery-storage>=2.20.0
+google-cloud-storage>=2.16.0
+google-cloud-tasks>=2.14.0
+google-cloud-core>=2.4.1
+google-auth>=2.23.0
+google-auth-oauthlib>=1.2.0
+
+# Data acquisition
+requests>=2.31.0
+protobuf>=4.25.0
+gtfs-realtime-bindings>=1.0.0
+
+# Columnar / Arrow support (parquet & fast schema handling)
+pyarrow>=16.0.0
+
+# Timezone handling (explicitly required by daily_schedule)
+pytz>=2024.1
+
+# Cloud Functions HTTP server
+functions-framework==3.5.0
+gunicorn==22.0.0
+
+# NOTE: This single requirements.txt serves all functions (workers, enqueuers, future daily schedule)
+# If deploying to Cloud Functions/Run, pin versions more strictly for reproducibility.

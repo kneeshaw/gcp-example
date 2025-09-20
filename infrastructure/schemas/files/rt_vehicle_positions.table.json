@@ -1,0 +1,22 @@
+{"table_name": "rt_vehicle_positions", "description": "Real-time vehicle position data from GTFS-RT feeds", "clustering": ["entity_id"], "partitioning": {"type": "DAY", "field": "timestamp"}}
+{"name": "record_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for this vehicle position record"}
+{"name": "entity_id", "type": "STRING", "mode": "REQUIRED", "description": "GTFS-RT entity identifier for this vehicle"}
+{"name": "timestamp", "type": "TIMESTAMP", "mode": "REQUIRED", "description": "Timestamp when this position was recorded"}
+{"name": "timestamp_s", "type": "INTEGER", "mode": "NULLABLE", "description": "Unix timestamp in seconds"}
+{"name": "vehicle_id", "type": "STRING", "mode": "NULLABLE", "description": "Unique identifier for the vehicle"}
+{"name": "vehicle_label", "type": "STRING", "mode": "NULLABLE", "description": "User-visible label for the vehicle"}
+{"name": "vehicle_license_plate", "type": "STRING", "mode": "NULLABLE", "description": "License plate number of the vehicle"}
+{"name": "latitude", "type": "FLOAT", "mode": "NULLABLE", "description": "Latitude coordinate in decimal degrees"}
+{"name": "longitude", "type": "FLOAT", "mode": "NULLABLE", "description": "Longitude coordinate in decimal degrees"}
+{"name": "bearing", "type": "FLOAT", "mode": "NULLABLE", "description": "Bearing/direction of travel in degrees"}
+{"name": "speed", "type": "FLOAT", "mode": "NULLABLE", "description": "Speed of the vehicle in m/s"}
+{"name": "odometer", "type": "FLOAT", "mode": "NULLABLE", "description": "Odometer reading of the vehicle"}
+{"name": "occupancy_status", "type": "STRING", "mode": "NULLABLE", "description": "Current occupancy status of the vehicle"}
+{"name": "route_id", "type": "STRING", "mode": "NULLABLE", "description": "Route identifier this vehicle is serving"}
+{"name": "trip_id", "type": "STRING", "mode": "NULLABLE", "description": "Trip identifier this vehicle is serving"}
+{"name": "direction_id", "type": "INTEGER", "mode": "NULLABLE", "description": ""}
+{"name": "start_date", "type": "STRING", "mode": "NULLABLE", "description": "Start date of the trip in YYYYMMDD format"}
+{"name": "start_time", "type": "STRING", "mode": "NULLABLE", "description": "Scheduled start time of the trip"}
+{"name": "schedule_relationship", "type": "STRING", "mode": "NULLABLE", "description": "Relationship to the scheduled trip"}
+{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
+{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}

@@ -1,0 +1,9 @@
+{"table_name": "sc_shapes", "description": "Shape geometry points for GTFS schedule feeds", "clustering": ["feed_hash", "shape_id", "shape_pt_sequence"]}
+{"name": "shape_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for the shape"}
+{"name": "shape_pt_lat", "type": "FLOAT", "mode": "REQUIRED", "description": "Latitude of the shape point"}
+{"name": "shape_pt_lon", "type": "FLOAT", "mode": "REQUIRED", "description": "Longitude of the shape point"}
+{"name": "shape_pt_sequence", "type": "INTEGER", "mode": "REQUIRED", "description": "Sequence number of the shape point"}
+{"name": "shape_dist_traveled", "type": "FLOAT", "mode": "NULLABLE", "description": "Distance traveled along the shape from the first point"}
+{"name": "feed_hash", "type": "STRING", "mode": "REQUIRED", "description": "Hash of the GTFS feed for data lineage"}
+{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
+{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}

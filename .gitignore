@@ -1,0 +1,97 @@
+# ---- macOS ----
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ---- VSCode ----
+.vscode/
+.history/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.pyd
+*.so
+
+# Environments
+.env
+.env.*
+.venv/
+venv/
+ENV/
+*.envrc
+
+# Packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Tests
+.pytest_cache/
+.coverage*
+.hypothesis/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb~
+
+# Logs
+logs/
+*.log
+
+# MyPy/Pylance
+.mypy_cache/
+.pyre/
+.pytype/
+
+# ---- Terraform ----
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform plan files
+*.tfplan
+*.plan
+plan.*
+
+# ---- Node / Frontend (if any) ----
+node_modules/
+
+# ---- BigQuery cache/artifacts ----
+*.bqtmp
+*.avro
+*.parquet
+
+# ---- Project specific ----
+notebooks/.venv/
+**/__pypackages__/
+**/.ipynb_checkpoints/
+
+# Local credentials and configs
+credentials.json
+*.key.json
+*.serviceAccount.json
+.gcloud/
+**/dev.tfvars
+**/*.auto.tfvars

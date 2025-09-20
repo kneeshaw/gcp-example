@@ -1,0 +1,24 @@
+{"table_name": "rt_service_alerts", "description": "Real-time service alert data from GTFS-RT feeds", "clustering": ["entity_id"], "partitioning": {"type": "DAY", "field": "timestamp"}}
+{"name": "record_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for this service alert record"}
+{"name": "entity_id", "type": "STRING", "mode": "REQUIRED", "description": "GTFS-RT entity identifier for this service alert"}
+{"name": "alert_id", "type": "STRING", "mode": "NULLABLE", "description": "Alert identifier"}
+{"name": "timestamp", "type": "TIMESTAMP", "mode": "REQUIRED", "description": "Timestamp when this alert was recorded"}
+{"name": "timestamp_s", "type": "INTEGER", "mode": "NULLABLE", "description": "Unix timestamp in seconds"}
+{"name": "header", "type": "STRING", "mode": "NULLABLE", "description": "Alert header text"}
+{"name": "description", "type": "STRING", "mode": "NULLABLE", "description": "Alert description text"}
+{"name": "url", "type": "STRING", "mode": "NULLABLE", "description": "URL with additional alert information"}
+{"name": "cause", "type": "STRING", "mode": "NULLABLE", "description": "Cause of the service disruption"}
+{"name": "effect", "type": "STRING", "mode": "NULLABLE", "description": "Effect of the service disruption"}
+{"name": "effect_detail", "type": "STRING", "mode": "NULLABLE", "description": "Detailed effect description"}
+{"name": "severity_level", "type": "STRING", "mode": "NULLABLE", "description": "Severity level of the alert"}
+{"name": "period_start", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Start time of the alert period"}
+{"name": "period_end", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "End time of the alert period"}
+{"name": "period_start_s", "type": "INTEGER", "mode": "NULLABLE", "description": "Start time in Unix seconds"}
+{"name": "period_end_s", "type": "INTEGER", "mode": "NULLABLE", "description": "End time in Unix seconds"}
+{"name": "route_id", "type": "STRING", "mode": "NULLABLE", "description": "Affected route identifier"}
+{"name": "agency_id", "type": "STRING", "mode": "NULLABLE", "description": "Affected agency identifier"}
+{"name": "trip_id", "type": "STRING", "mode": "NULLABLE", "description": "Affected trip identifier"}
+{"name": "stop_id", "type": "STRING", "mode": "NULLABLE", "description": "Affected stop identifier"}
+{"name": "direction_id", "type": "INTEGER", "mode": "NULLABLE", "description": ""}
+{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
+{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}

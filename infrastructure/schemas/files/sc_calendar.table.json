@@ -1,0 +1,14 @@
+{"table_name": "sc_calendar", "description": "Service calendar information from GTFS schedule feeds", "clustering": ["feed_hash", "service_id"]}
+{"name": "service_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique identifier for the service"}
+{"name": "monday", "type": "INTEGER", "mode": "REQUIRED", "description": ""}
+{"name": "tuesday", "type": "INTEGER", "mode": "REQUIRED", "description": ""}
+{"name": "wednesday", "type": "INTEGER", "mode": "REQUIRED", "description": ""}
+{"name": "thursday", "type": "INTEGER", "mode": "REQUIRED", "description": ""}
+{"name": "friday", "type": "INTEGER", "mode": "REQUIRED", "description": ""}
+{"name": "saturday", "type": "INTEGER", "mode": "REQUIRED", "description": ""}
+{"name": "sunday", "type": "INTEGER", "mode": "REQUIRED", "description": ""}
+{"name": "start_date", "type": "INTEGER", "mode": "REQUIRED", "description": "Start date of the service in YYYYMMDD format"}
+{"name": "end_date", "type": "INTEGER", "mode": "REQUIRED", "description": "End date of the service in YYYYMMDD format"}
+{"name": "feed_hash", "type": "STRING", "mode": "REQUIRED", "description": "Hash of the GTFS feed for data lineage"}
+{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
+{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
