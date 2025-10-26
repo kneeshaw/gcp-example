@@ -149,7 +149,7 @@ def run(request):
             
             # additional debug to inspect transformed DataFrame
             logger.info(f"Stopped prior to BigQuery upload")
-            return df_transformed
+            #return df_transformed
 
             result = upload_to_bigquery(
                 df_transformed, 
