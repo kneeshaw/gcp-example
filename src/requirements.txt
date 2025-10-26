@@ -13,6 +13,7 @@ google-cloud-tasks>=2.14.0
 google-cloud-core>=2.4.1
 google-auth>=2.23.0
 google-auth-oauthlib>=1.2.0
+redis>=5.0.0
 
 # Data acquisition
 requests>=2.31.0

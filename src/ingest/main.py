@@ -147,6 +147,10 @@ def run(request):
             deduplication_mode = _get_deduplication_mode(config['dataset'])
             logger.info(f"Using deduplication mode '{deduplication_mode}' for dataset '{config['dataset']}'")
             
+            # additional debug to inspect transformed DataFrame
+            logger.info(f"Stopped prior to BigQuery upload")
+            return df_transformed
+
             result = upload_to_bigquery(
                 df_transformed, 
                 table_name, 

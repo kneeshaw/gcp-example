@@ -111,10 +111,6 @@ def upload_to_bigquery(
             result = _upload_streaming(client, df, table_id, schema)
             result["processing_time"] = round(time.time() - start_time, 3)
             return result
-        elif transport == "storage_api":
-            result = _upload_storage_write_api(client, df, table_id, schema)
-            result["processing_time"] = round(time.time() - start_time, 3)
-            return result
         else:
             result = _upload_batch(client, df, table_id, schema)
             result["processing_time"] = round(time.time() - start_time, 3)
@@ -392,70 +388,3 @@ def _deduplicate_dataframe(
     logger.info(f"Deduplicated DataFrame: {original_count} -> {len(deduplicated_df)} records ({skipped_count} duplicates removed)")
 
     return deduplicated_df, skipped_count
-
-
-def _upload_storage_write_api(
-    client: bigquery.Client,
-    df: pd.DataFrame,
-    table_id: str,
-    schema: List[bigquery.SchemaField]
-) -> Dict[str, Any]:
-    """
-    Uploads a DataFrame to BigQuery using the Storage Write API.
-    """
-    write_client = BigQueryWriteClient()
-    parent = write_client.table_path(client.project, table_id.split('.')[1], table_id.split('.')[2])
-
-    # Create a write stream to the table.
-    write_stream = types.WriteStream()
-    write_stream.type_ = types.WriteStream.Type.PENDING
-    write_stream = write_client.create_write_stream(
-        parent=parent, write_stream=write_stream
-    )
-    stream_name = write_stream.name
-
-    # Convert DataFrame to protocol buffer rows.
-    proto_rows = _dataframe_to_proto_rows(df, schema)
-
-    # Append rows to the stream.
-    write_client.append_rows(
-        write_stream=stream_name,
-        rows=types.AppendRowsRequest.ProtoData(rows=proto_rows)
-    )
-    
-    # Finalize and commit the stream.
-    write_client.finalize_write_stream(name=stream_name)
-    write_client.batch_commit_write_streams(
-        parent=parent, write_streams=[stream_name]
-    )
-
-    return {
-        "table": table_id,
-        "rows_processed": len(df),
-        "method": "storage_api",
-        "errors": 0
-    }
-
-
-def _dataframe_to_proto_rows(df: pd.DataFrame, schema: list) -> types.ProtoRows:
-    """
-    Converts a Pandas DataFrame to a `ProtoRows` object for the Storage Write API.
-    """
-    proto_rows = types.ProtoRows()
-    for _, row in df.iterrows():
-        proto_row = types.ProtoRow()
-        for field in schema:
-            value = row[field.name]
-            if pd.notna(value):
-                if field.field_type == 'TIMESTAMP':
-                    micros = int(value.timestamp() * 1_000_000)
-                    proto_row.serialized_value += micros.to_bytes(8, 'big', signed=True)
-                elif isinstance(value, str):
-                     proto_row.serialized_value += value.encode('utf-8')
-                elif isinstance(value, int):
-                    proto_row.serialized_value += value.to_bytes(8, 'big', signed=True)
-        proto_rows.serialized_rows.append(proto_row)
-    return proto_rows
-
-
-

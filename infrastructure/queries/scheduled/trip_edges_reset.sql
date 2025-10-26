@@ -7,8 +7,8 @@ WITH shapes AS (
   SELECT
     shape_id,
     geom,
-    ST_BUFFER(geom, 15) AS buf_geom,
-    ST_ENVELOPE(ST_BUFFER(geom, 15)) AS env_geom
+  ST_BUFFER(geom, 15) AS buf_geom,
+  ST_BOUNDINGBOX(ST_BUFFER(geom, 15)) AS env_box
   FROM `${project_id}.${dataset_id}.shapes_geog`
 ), roads AS (
   SELECT
@@ -19,7 +19,7 @@ WITH shapes AS (
     maxspeed,
     length_m AS edge_length_m,
     geom AS edge_geom,
-    ST_ENVELOPE(geom) AS env_geom,
+  ST_BOUNDINGBOX(geom) AS env_box,
     ST_SIMPLIFY(geom, 5) AS simple_geom
   FROM `${project_id}.${dataset_id}.vw_osm_akl_road_links`
 ), trips AS (
@@ -42,6 +42,6 @@ SELECT
 FROM trips t
 JOIN shapes s USING (shape_id)
 JOIN roads r
-  ON ST_INTERSECTS(r.env_geom, s.env_geom)
+  ON ST_INTERSECTSBOX(r.edge_geom, s.env_box.xmin, s.env_box.ymin, s.env_box.xmax, s.env_box.ymax)
  AND ST_DWithin(r.edge_geom, s.geom, 15)
 WHERE 1 = 0; -- create empty table with desired schema

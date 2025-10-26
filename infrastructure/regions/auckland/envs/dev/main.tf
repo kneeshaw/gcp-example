@@ -22,6 +22,7 @@ module "region" {
   headers          = var.headers
   datasets         = var.datasets
   timezone         = var.timezone
+  redis            = var.redis
 }
 
 # BigQuery Views (separate module)
@@ -99,6 +100,11 @@ output "worker_urls" { value = module.region.worker_urls }
 
 # Output: per-dataset enqueuer URLs (for enqueuer-enabled datasets)
 output "enqueuer_urls" { value = module.region.enqueuer_urls }
+output "redis_cache" { value = module.region.redis_cache }
+output "redis_auth_string" {
+  value     = module.region.redis_auth_string
+  sensitive = true
+}
 
 # Debug: surface unified source artifact details and hash
 output "unified_source_object" { value = module.region.unified_source_object }

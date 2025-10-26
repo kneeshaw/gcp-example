@@ -57,36 +57,48 @@ terraform apply -var-file=dev.tfvars -auto-approve
 ```
 
 ## Changing Variables
+
 Edit `dev.tfvars` to adjust:
+
 - `headers` map (common per-product headers) — stored base64 in env var for functions
-- `products` map (URLs, response types, cadence)
+- `datasets` map (URLs, response types, cadence)
   - `rate.offsets` => enables Cloud Tasks enqueuer (sub-minute); omit to use Cloud Scheduler cron
   - `rate.cron` => standard cron (UTC) if using scheduler
+- `redis` object (optional) to provision Memorystore + VPC access; `memory_size_gb` is required when enabled
+  - Connector subnetwork must use a /28 CIDR (default provided)
 
 After editing, re-run plan/apply.
 
 ## Adding a New Product
+
 1. Add a new block under `products` in `dev.tfvars`, e.g.:
-```hcl
-  vehicle-positions = {
-    url           = "https://example/api/vehicle_positions"
-    response_type = "json"
-    rate = { offsets = [0,5,10,15,20,25,30,35,40,45,50,55] }
-  }
-```
+
+   ```hcl
+     vehicle-positions = {
+       url           = "https://example/api/vehicle_positions"
+       response_type = "json"
+       rate = { offsets = [0,5,10,15,20,25,30,35,40,45,50,55] }
+     }
+   ```
+
 2. `terraform plan -var-file=dev.tfvars -out=plan.dev`
 3. Review resources (new queue, function, scheduler job, etc.).
 4. `terraform apply plan.dev`
 
 ## Destroying (Caution)
+
 Always supply the same tfvars file:
+
 ```sh
 terraform destroy -var-file=dev.tfvars
 ```
+
 If queues were recently deleted, Cloud Tasks might hold names for ~7 days; queue names include a `-v2-` token to avoid collision. Increment if needed.
 
 ## State Management
+
 Currently assumes local state. For team usage, configure a remote backend (e.g. GCS bucket):
+
 ```hcl
 # Example backend block (in versions.tf or a backend.hcl)
 terraform {
@@ -96,22 +108,31 @@ terraform {
   }
 }
 ```
+
 Then initialize/migrate:
+
 ```sh
 terraform init -migrate-state
 ```
 
 ## Outputs
+
 After apply, retrieve outputs:
+
 ```sh
 terraform output -json | jq
 ```
+
 Key outputs:
+
 - `data_bucket` – GCS bucket receiving ingested data
 - `worker_urls` – Map of product => worker function URL
 - `enqueuer_urls` – Map for products using Cloud Tasks fan-out
+- `redis_cache` – Redis host/port/network + connector metadata (null when disabled)
+- `redis_auth_string` – Sensitive AUTH token for Redis (null when disabled)
 
 ## Troubleshooting
+
 | Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
 | 403 invoking worker | Missing IAM invoker role | Ensure scheduler SA has token creator & Cloud Run invoker binding present |
@@ -120,11 +141,13 @@ Key outputs:
 | Plan shows recreate of buckets | Force destroy / manual deletion | Avoid manual deletions; import if needed |
 
 ## Conventions Recap
+
 - Real-time objects: `product/year=YYYY/month=MM/day=DD/hour=HH/product-<timestamp>.<ext>[.gz]`
 - Schedule objects: `schedule/year=YYYY/<md5>.zip` + `schedule/latest.zip`
 - Non-zip payloads gzip-compressed; `content_encoding=gzip` set.
 
 ## Safe Workflow Summary
+
 ```sh
 cd infrastructure/regions/auckland/envs/dev
 terraform fmt -check
@@ -135,6 +158,7 @@ terraform apply plan.dev
 ```
 
 ## Optional: Drift Detection (No Changes Apply)
+
 ```sh
 terraform plan -var-file=dev.tfvars -detailed-exitcode
 # exit code 0 = no changes, 2 = changes, 1 = error

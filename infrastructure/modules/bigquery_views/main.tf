@@ -57,6 +57,35 @@ locals {
   })
 }
 
+# Optional base table for OSM road links to satisfy view dependency
+resource "google_bigquery_table" "osm_akl_road_links_base" {
+  count      = var.osm_akl_road_links_enabled ? 1 : 0
+  project    = var.project_id
+  dataset_id = var.dataset_id
+  table_id   = "osm_akl_road_links"
+
+  deletion_protection = false
+
+  time_partitioning {
+    type  = "DAY"
+    field = null
+  }
+
+  clustering = []
+
+  schema = jsonencode([
+    { name = "edge_id",  type = "INT64",    mode = "REQUIRED" },
+    { name = "name",     type = "STRING",   mode = "NULLABLE" },
+    { name = "highway",  type = "STRING",   mode = "NULLABLE" },
+    { name = "oneway",   type = "STRING",   mode = "NULLABLE" },
+    { name = "maxspeed", type = "STRING",   mode = "NULLABLE" },
+    { name = "length_m", type = "FLOAT64",  mode = "NULLABLE" },
+    { name = "geom",     type = "GEOGRAPHY",mode = "NULLABLE" }
+  ])
+
+  labels = { type = "base" }
+}
+
 resource "google_bigquery_table" "vw_planned_vs_actual" {
   count      = var.planned_vs_actual_enabled ? 1 : 0
   project    = var.project_id
@@ -111,6 +140,8 @@ resource "google_bigquery_table" "vw_agg_route_hourly" {
 
   depends_on = [google_bigquery_table.vw_fact_stop_events]
 
+  deletion_protection = false
+
   view {
     use_legacy_sql = false
     query          = local.agg_route_hourly_query
@@ -125,6 +156,8 @@ resource "google_bigquery_table" "vw_agg_network_hourly" {
   table_id   = "vw_agg_network_hourly"
 
   depends_on = [google_bigquery_table.vw_fact_stop_events]
+
+  deletion_protection = false
 
   view {
     use_legacy_sql = false
@@ -141,6 +174,8 @@ resource "google_bigquery_table" "vw_agg_route_daily" {
 
   depends_on = [google_bigquery_table.vw_fact_stop_events]
 
+  deletion_protection = false
+
   view {
     use_legacy_sql = false
     query          = local.agg_route_daily_query
@@ -155,6 +190,8 @@ resource "google_bigquery_table" "vw_agg_network_daily" {
   table_id   = "vw_agg_network_daily"
 
   depends_on = [google_bigquery_table.vw_fact_stop_events]
+
+  deletion_protection = false
 
   view {
     use_legacy_sql = false
@@ -224,6 +261,8 @@ resource "google_bigquery_table" "vw_fact_trips" {
 
   depends_on = [google_bigquery_table.vw_fact_stop_events]
 
+  deletion_protection = false
+
   view {
     use_legacy_sql = false
     query          = local.fact_trips_query
@@ -238,6 +277,8 @@ resource "google_bigquery_table" "vw_agg_trip_daily" {
   table_id   = "vw_agg_trip_daily"
 
   depends_on = [google_bigquery_table.vw_fact_trips]
+
+  deletion_protection = false
 
   view {
     use_legacy_sql = false
@@ -273,6 +314,12 @@ resource "google_bigquery_table" "vw_osm_akl_road_links" {
   project    = var.project_id
   dataset_id = var.dataset_id
   table_id   = "vw_osm_akl_road_links"
+
+  # Ensure the base table exists if enabled; otherwise, this view expects
+  # `${var.project_id}.${var.dataset_id}.osm_akl_road_links` to be created by the ingest job.
+  depends_on = [
+    google_bigquery_table.osm_akl_road_links_base
+  ]
 
   deletion_protection = false
 

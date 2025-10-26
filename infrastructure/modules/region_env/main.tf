@@ -83,7 +83,42 @@ module "services" {
     "bigquery.googleapis.com",
     "bigquerystorage.googleapis.com",
     "bigquerydatatransfer.googleapis.com",
+    "redis.googleapis.com",
+    "vpcaccess.googleapis.com",
   ]
+}
+
+# Optional Redis cache backing Memorystore instance plus networking
+module "redis_cache" {
+  for_each = var.redis != null && try(var.redis.enabled, true) ? { primary = var.redis } : {}
+  source   = "../memorystore_redis"
+
+  project_id  = var.project_id
+  region      = var.gcp_region
+  environment = var.environment
+
+  resource_prefix         = try(each.value.resource_prefix, "${var.region}-${var.environment}")
+  network_name            = try(each.value.network_name, null)
+  subnet_name             = try(each.value.subnet_name, null)
+  subnet_cidr             = try(each.value.subnet_cidr, "10.60.0.0/24")
+  connector_name          = try(each.value.connector_name, null)
+  connector_machine_type  = try(each.value.connector_machine_type, null)
+  connector_min_instances = try(each.value.connector_min_instances, 2)
+  connector_max_instances = try(each.value.connector_max_instances, 3)
+  redis_name              = try(each.value.redis_name, null)
+
+  memory_size_gb          = each.value.memory_size_gb
+  tier                    = try(each.value.tier, "STANDARD_HA")
+  redis_version           = try(each.value.redis_version, "REDIS_7_0")
+  auth_enabled            = try(each.value.auth_enabled, true)
+  transit_encryption_mode = try(each.value.transit_encryption_mode, "SERVER_AUTHENTICATION")
+  read_replicas_mode      = try(each.value.read_replicas_mode, "READ_REPLICAS_DISABLED")
+  replica_count           = try(each.value.replica_count, 1)
+  display_name            = try(each.value.display_name, null)
+  labels                  = try(each.value.labels, {})
+  maintenance_window      = try(each.value.maintenance_window, null)
+
+  depends_on = [module.services]
 }
 
 # Service account for Cloud Functions
@@ -204,7 +239,7 @@ module "enqueuers" {
   function_name = "${var.region}-${each.value.spec}-${each.value.dataset}-enqueuer-${local.env_tag}"
   queue_location = var.gcp_region
   # Queue names are retained for ~7 days after deletion in Cloud Tasks; adding a version token allows recreation after destroy.
-  queue_name     = "${var.region}-${each.value.spec}-${each.value.dataset}-queue-v9-${local.env_tag}"
+  queue_name     = "${var.region}-${each.value.spec}-${each.value.dataset}-queue-v11-${local.env_tag}"
   worker_url     = module.workers[each.key].uri
   enqueuer_service_account_email  = google_service_account.function.email
   scheduler_service_account_email = google_service_account.scheduler.email

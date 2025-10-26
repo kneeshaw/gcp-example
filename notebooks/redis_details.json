@@ -1,0 +1,23 @@
+{
+  "connector": {
+    "id": "projects/regal-dynamo-470908-v9/locations/australia-southeast1/connectors/redis-redis-connector",
+    "name": "redis-redis-connector",
+    "project": "regal-dynamo-470908-v9",
+    "region": "australia-southeast1"
+  },
+  "host": "10.146.65.252",
+  "name": "redis-redis",
+  "network": {
+    "name": "redis-redis-net",
+    "project": "regal-dynamo-470908-v9",
+    "self_link": "https://www.googleapis.com/compute/v1/projects/regal-dynamo-470908-v9/global/networks/redis-redis-net"
+  },
+  "port": 6378,
+  "subnet": {
+    "cidr": "10.60.0.0/28",
+    "name": "redis-redis-subnet",
+    "network": "https://www.googleapis.com/compute/v1/projects/regal-dynamo-470908-v9/global/networks/redis-redis-net",
+    "region": "australia-southeast1",
+    "self_link": "https://www.googleapis.com/compute/v1/projects/regal-dynamo-470908-v9/regions/australia-southeast1/subnetworks/redis-redis-subnet"
+  }
+}
