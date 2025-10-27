@@ -40,11 +40,22 @@ def ts_parts(ts: datetime) -> Dict[str, str]:
     }
 
 
-def build_object_name(dataset: str, parts: Dict[str, str], response_type: str, gzipped: bool, spec: str) -> str:
+def build_object_name(
+    dataset: str,
+    parts: Dict[str, str],
+    response_type: str,
+    gzipped: bool,
+    spec: str,
+    *,
+    use_cache_prefix: bool = False,
+) -> str:
     """Compose a partitioned GCS object path for real-time style datasets.
 
     Layout:
         {dataset}/year=YYYY/month=MM/day=DD/hour=HH/{spec}-{dataset}-<timestamp>.<ext>[.gz]
+
+    When ``use_cache_prefix`` is ``True`` an extra ``cache/`` segment is
+    inserted immediately after the ``{spec}-{dataset}`` prefix.
 
     Args:
         dataset: Dataset identifier (e.g. vehicle_positions).
@@ -56,14 +67,20 @@ def build_object_name(dataset: str, parts: Dict[str, str], response_type: str, g
     Returns:
         A fully qualified object name relative to the bucket.
     """
-    
+
     ext = EXT_MAP.get(response_type, "bin")
     suffix = f".{ext}"
-    
+
     if gzipped and response_type != "zip":
         suffix += ".gz"
-    return (f"{spec}-{dataset}/year={parts['Y']}/month={parts['M']}/day={parts['D']}/hour={parts['h']}/"
-            f"{dataset}-{parts['stamp']}{suffix}")
+    prefix = f"{spec}-{dataset}"
+    if use_cache_prefix:
+        prefix = f"{prefix}/cache"
+
+    return (
+        f"{prefix}/year={parts['Y']}/month={parts['M']}/day={parts['D']}/hour={parts['h']}/"
+        f"{dataset}-{parts['stamp']}{suffix}"
+    )
 
 
 def gzip_bytes(data: bytes, level: int = 6) -> bytes:
@@ -103,7 +120,15 @@ def upload_gcs(bucket: str, object_name: str, data_bytes: bytes, content_type: s
     blob.upload_from_string(data_bytes, content_type=content_type)
 
 
-def upload_data_response(bucket: str, dataset: str, data: bytes, response_type: str, spec: str):
+def upload_data_response(
+    bucket: str,
+    dataset: str,
+    data: bytes,
+    response_type: str,
+    spec: str,
+    *,
+    use_cache_prefix: bool = False,
+):
     """Upload a real-time style response (with time-partitioned path).
 
     Automatically gzips non-zip content and derives the correct extension &
@@ -127,14 +152,30 @@ def upload_data_response(bucket: str, dataset: str, data: bytes, response_type: 
         data = gzip_bytes(data)
 
     content_type = CONTENT_TYPE_MAP.get(response_type, "application/octet-stream")
-    object_name = build_object_name(dataset, parts, response_type, gzipped, spec)
+    object_name = build_object_name(
+        dataset,
+        parts,
+        response_type,
+        gzipped,
+        spec,
+        use_cache_prefix=use_cache_prefix,
+    )
 
     upload_gcs(bucket, object_name, data, content_type, gzipped)
     return object_name
 
 
-def upload_schedule_response(bucket: str, dataset: str, zip_bytes: bytes, response_type: str, spec: str) -> tuple[str, str, bool]:
-    """Upload GTFS static feed (schedule) ZIP with hash-based deduplication.
+def upload_schedule_response(
+    bucket: str,
+    dataset: str,
+    zip_bytes: bytes,
+    response_type: str,
+    spec: str,
+    use_cache_prefix: bool = False,
+) -> tuple[str, str, bool]:
+
+    """
+    Upload GTFS static feed (schedule) ZIP with hash-based deduplication.
 
     Creates (if new):
         {dataset}/year=YYYY/{spec}-{hash}.zip  (immutable, content addressed)
@@ -185,5 +226,16 @@ def upload_schedule_response(bucket: str, dataset: str, zip_bytes: bytes, respon
         metadata=meta,
     )
 
-    logger.info(f"Uploaded new GTFS static feed (hash={hash_hex})")
-    return hashed_object_name, hash_hex, True
+    cache_object_name: Optional[str] = None
+    if use_cache_prefix:
+        cache_object_name = f"{spec}-{dataset}/cache/year={year}/{hash_hex}.zip"
+        upload_gcs(
+            bucket=bucket,
+            object_name=cache_object_name,
+            data_bytes=zip_bytes,
+            content_type="application/zip",
+            gzipped=False,
+            metadata=meta,
+        )
+
+    return (cache_object_name or hashed_object_name), hash_hex, True

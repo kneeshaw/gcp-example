@@ -82,7 +82,9 @@ COLS_MAPPING = {
     'agency_id': ['alert.informed_entity.agency_id'],
     'trip_id': ['alert.informed_entity.trip.trip_id'],
     'stop_id': ['alert.informed_entity.stop_id'],
-    'direction_id': ['alert.informed_entity.direction_id']
+    'direction_id': ['alert.informed_entity.direction_id'],
+    'created_at': ['created_at'],
+    'updated_at': ['updated_at']
 }
 
 # BigQuery-specific table configuration

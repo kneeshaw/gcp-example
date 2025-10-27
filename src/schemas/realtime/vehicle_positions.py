@@ -77,7 +77,9 @@ COLS_MAPPING = {
     'start_time': ['vehicle.trip.start_time', 'vehicle.trip.startTime'],
     'schedule_relationship': ['vehicle.trip.schedule_relationship', 'vehicle.trip.scheduleRelationship'],
     'timestamp': ['vehicle.timestamp', 'timestamp'],
-    'timestamp_s': ['vehicle.timestamp', 'timestamp']
+    'timestamp_s': ['vehicle.timestamp', 'timestamp'],
+    'created_at': ['created_at'],
+    'updated_at': ['updated_at']
 }
 
 # GTFS-RT Categorical Field Mappings (following GTFS specification)

@@ -350,35 +350,31 @@ def generate_entity_id(df: pd.DataFrame, schema_class) -> pd.DataFrame:
     return result_df
 
 
-def deduplicate_by_record_id(df: pd.DataFrame, keep='first') -> pd.DataFrame:
-    """
-    Remove duplicate records based on record_id.
-
-    Since record_id is a hash of the full record content, identical records
-    will have the same record_id, making this perfect for deduplication.
-
-    Args:
-        df: Input DataFrame with record_id column
-        keep: Which duplicate to keep ('first', 'last', or False to drop all duplicates)
-
-    Returns:
-        DataFrame with duplicates removed
-    """
-    if df.empty or 'record_id' not in df.columns:
+def deduplicate_by_record_id(df: pd.DataFrame) -> pd.DataFrame:
+    """Collapse duplicates by ``record_id`` keeping earliest and latest timestamps."""
+    if df.empty or "record_id" not in df.columns:
         logger.debug("DataFrame is empty or missing record_id column - no deduplication performed")
         return df
 
-    initial_count = len(df)
-    result_df = df.drop_duplicates(subset=['record_id'], keep=keep)
-    final_count = len(result_df)
+    working = df.copy()
 
-    duplicates_removed = initial_count - final_count
-    if duplicates_removed > 0:
-        logger.info(f"Removed {duplicates_removed} duplicate records based on record_id ({initial_count} -> {final_count})")
-    else:
-        logger.debug("No duplicate records found")
+    # Normalise timestamps – fall back to NaT when missing
+    working["updated_at"] = pd.to_datetime(working.get("updated_at"), utc=True, errors="coerce")
 
-    return result_df
+    # Order so the first row per record_id represents the earliest observation
+    working = working.sort_values(["record_id", "updated_at"], kind="mergesort", na_position="last")
+
+    baseline = working.groupby("record_id", as_index=False).first()
+
+    # Compute min/max updated_at to drive created/updated timestamps
+    stats = working.groupby("record_id")["updated_at"].agg(["min", "max"]).rename(
+        columns={"min": "created_at", "max": "updated_at"}
+    )
+
+    baseline = baseline.drop(columns=["created_at", "updated_at"], errors="ignore")
+    result = baseline.merge(stats, on="record_id", how="left")
+
+    return result
 
 
 def add_missing_schema_fields(df: pd.DataFrame, schema_class) -> pd.DataFrame:
@@ -663,27 +659,30 @@ def clean_and_validate_dataframe(df: pd.DataFrame, schema_class) -> pd.DataFrame
     # 5. Coerce integer fields to nullable Int64
     df = coerce_integer_fields_to_nullable_int(df, schema_class)
 
-    # 6. Generate record and entity IDs
+    # 6. Order columns before generating identifiers to ensure deterministic hashing
+    df = order_columns_by_schema(df, schema_class)
+
+    # 7. Generate record and entity IDs
     df = generate_record_id(df, schema_class)
     df = generate_entity_id(df, schema_class)
 
-    # 7. Deduplicate by record_id
+    # 8. Deduplicate by record_id
     df = deduplicate_by_record_id(df)
 
-    # 8. Filter out rows with nulls in specified columns
+    # 9. Filter out rows with nulls in specified columns
     df = filter_null_rows_by_columns(df, schema_class)
 
-    # 9. Add missing columns and drop extra ones
+    # 10. Add missing columns and drop extra ones
     df = add_missing_schema_fields(df, schema_class)
     df = drop_extra_columns_not_in_schema(df, schema_class)
 
-    # 10. Sort DataFrame columns to match schema order
+    # 11. Sort DataFrame columns to match schema order (final ordering)
     df = order_columns_by_schema(df, schema_class)
 
-    # 11. Final validation using Pandera
+    # 12. Final validation using Pandera
     df = schema_class.to_schema().validate(df)
 
-    # 12. Coerce timestamp columns to UTC datetime64[ns]
+    # 13. Coerce timestamp columns to UTC datetime64[ns]
     df = coerce_timestamp_columns_to_utc(df, schema_class)
 
     return df

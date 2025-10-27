@@ -88,7 +88,9 @@ COLS_MAPPING = {
     'departure_uncertainty': ['trip_update.stop_time_update.departure.uncertainty'],
     'vehicle_id': ['trip_update.vehicle.id'],
     'vehicle_label': ['trip_update.vehicle.label'],
-    'vehicle_license_plate': ['trip_update.vehicle.license_plate']
+    'vehicle_license_plate': ['trip_update.vehicle.license_plate'],
+    'created_at': ['created_at'],
+    'updated_at': ['updated_at']
 }
 
 # BigQuery-specific table configuration
