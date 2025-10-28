@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Any, Dict
 
 import pandas as pd
@@ -44,6 +45,27 @@ def upsert_batch(
 
     original_columns = set(df.columns)
     df = df.copy()
+    
+    # Handle timestamps for upsert operation
+    current_time = datetime.utcnow()
+    
+    if "created_at" in target_columns:
+        if "created_at" not in df.columns:
+            # For upserts, new rows get created_at = NOW, existing rows keep their created_at
+            # We'll handle this in the MERGE SQL logic
+            df["created_at"] = current_time
+            logger.debug("Setting created_at to current time for new rows")
+        else:
+            # Fill null created_at values (these would be for new rows)
+            null_count = df["created_at"].isna().sum()
+            if null_count > 0:
+                df["created_at"] = df["created_at"].fillna(current_time)
+                logger.debug("Filled %d null created_at values with current time", null_count)
+    
+    if "updated_at" in target_columns:
+        # Always set updated_at to NOW for upserts (both new and existing rows)
+        df["updated_at"] = current_time
+        logger.debug("Setting updated_at to current time for all rows")
 
     extra_columns = original_columns - set(target_columns)
     if extra_columns:
@@ -69,13 +91,22 @@ def upsert_batch(
         load_job = client.load_table_from_dataframe(df, staging_table_id, job_config=load_job_config)
         load_job.result()
 
+        # Build dynamic MERGE SQL
+        # For WHEN MATCHED: update all columns except created_at (preserve existing created_at)
+        updatable_columns = [col for col in target_columns if col != "created_at"]
+        update_clauses = [f"target.{col} = source.{col}" for col in updatable_columns]
+        
         merge_sql = (
             f"MERGE `{table_id}` AS target\n"
             f"USING `{staging_table_id}` AS source\n"
             "  ON target.record_id = source.record_id\n"
-            f"WHEN MATCHED THEN\n  UPDATE SET target.updated_at = source.updated_at\n"
-            "WHEN NOT MATCHED THEN\n  INSERT ROW"
+            f"WHEN MATCHED THEN\n"
+            f"  UPDATE SET {', '.join(update_clauses)}\n"
+            "WHEN NOT MATCHED THEN\n"
+            "  INSERT ROW"
         )
+        
+        logger.debug("Executing MERGE SQL:\n%s", merge_sql)
 
         merge_job = client.query(merge_sql)
         merge_job.result()

@@ -62,7 +62,7 @@ class DailySchedule(TimestampMixin, pa.DataFrameModel):
 
 
 # BigQuery-specific table configuration
-DailySchedule._bigquery_table_name = "sc_daily_schedule"
+DailySchedule._bigquery_table_name = "ds_daily_schedule"
 DailySchedule._description = "Derived daily schedule combining route, trip, stop, and timing information"
 DailySchedule._bigquery_clustering = ['feed_hash', 'route_id', 'trip_id', 'stop_sequence']
 DailySchedule._bigquery_partitioning = {

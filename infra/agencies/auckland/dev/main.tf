@@ -79,7 +79,7 @@ resource "google_storage_bucket_iam_member" "functions_storage_admin" {
 // Shallow merge: agency var.datasets overrides keys present in the catalog; if a dataset omits `tables`, the shared tables apply.
 module "dataset_catalog" {
   source       = "../../../modules/dataset_catalog"
-  schemas_root = "${path.module}/../../../schemas/files"
+  schemas_root = "${path.module}/../../../tables"
 }
 
 locals {
@@ -277,4 +277,31 @@ module "bq_tables" {
   deletion_protection = false
 
   depends_on = [google_bigquery_dataset.dataset]
+}
+
+# BigQuery views (create per-dataset views from SQL files)
+locals {
+  view_defs = merge([
+    for dname, dcfg in local.datasets : {
+      for vname, vcfg in lookup(dcfg, "views", {}) : "${dname}/${vname}" => {
+        ds_name     = dname
+        view_name   = vname
+        sql_file    = vcfg.sql_file
+        description = try(vcfg.description, "View for ${dname}/${vname}")
+      }
+    }
+  ]...)
+}
+
+module "bq_views" {
+  for_each = local.view_defs
+  source   = "../../../modules/bigquery_view"
+
+  project_id  = var.project_id
+  dataset_id  = var.bq_dataset
+  view_id     = lower(replace("vw_${each.value.view_name}", "-", "_"))
+  sql_file    = each.value.sql_file
+  description = each.value.description
+
+  depends_on = [google_bigquery_dataset.dataset, module.bq_tables]
 }

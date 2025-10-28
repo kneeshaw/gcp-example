@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict
 
 import pandas as pd
@@ -47,6 +48,16 @@ def insert_batch(
     target_columns = [field.name for field in target_table.schema]
 
     df_to_load = df.copy()
+    
+    # Set timestamps for any null values if columns exist
+    current_time = datetime.utcnow()
+    
+    if "created_at" in df_to_load.columns:
+        df_to_load["created_at"] = df_to_load["created_at"].fillna(current_time)
+    
+    if "updated_at" in df_to_load.columns:
+        df_to_load["updated_at"] = df_to_load["updated_at"].fillna(current_time)
+
     extra_columns = set(df_to_load.columns) - set(target_columns)
     if extra_columns:
         logger.debug(
