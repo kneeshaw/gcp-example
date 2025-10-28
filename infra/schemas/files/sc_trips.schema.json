@@ -1,0 +1,80 @@
+[
+  {
+    "name": "trip_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the trip"
+  },
+  {
+    "name": "route_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the route"
+  },
+  {
+    "name": "service_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the service"
+  },
+  {
+    "name": "trip_headsign",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Text that appears on signage identifying the trip"
+  },
+  {
+    "name": "trip_short_name",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Short text or number that identifies the trip to passengers"
+  },
+  {
+    "name": "direction_id",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": ""
+  },
+  {
+    "name": "block_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Block identifier for the trip"
+  },
+  {
+    "name": "shape_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Shape identifier for the trip"
+  },
+  {
+    "name": "wheelchair_accessible",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": ""
+  },
+  {
+    "name": "bikes_allowed",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": ""
+  },
+  {
+    "name": "feed_hash",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Hash of the GTFS feed for data lineage"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  },
+  {
+    "name": "updated_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  }
+]

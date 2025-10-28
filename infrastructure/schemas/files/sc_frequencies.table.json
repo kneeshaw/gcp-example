@@ -1,9 +1,0 @@
-{"table_name": "sc_frequencies", "description": "Trip frequencies and headways from GTFS schedule feeds", "clustering": ["feed_hash", "trip_id"]}
-{"name": "trip_id", "type": "STRING", "mode": "REQUIRED", "description": "Trip identifier for this frequency"}
-{"name": "start_time", "type": "STRING", "mode": "REQUIRED", "description": "Start time for this frequency period"}
-{"name": "end_time", "type": "STRING", "mode": "REQUIRED", "description": "End time for this frequency period"}
-{"name": "headway_secs", "type": "INTEGER", "mode": "REQUIRED", "description": "Time between departures in seconds"}
-{"name": "exact_times", "type": "INTEGER", "mode": "NULLABLE", "description": ""}
-{"name": "feed_hash", "type": "STRING", "mode": "REQUIRED", "description": "Hash of the GTFS feed for data lineage"}
-{"name": "created_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}
-{"name": "updated_at", "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Auto-appended warehouse timestamp"}

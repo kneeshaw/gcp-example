@@ -1,0 +1,11 @@
+{
+  "table_name": "rt_trip_updates",
+  "description": "Real-time trip update data from GTFS-RT feeds",
+  "partitioning": {
+    "type": "DAY",
+    "field": "timestamp"
+  },
+  "clustering": [
+    "entity_id"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "table_name": "sc_agency",
+  "description": "Transit agency information from GTFS schedule feeds",
+  "clustering": [
+    "feed_hash"
+  ]
+}

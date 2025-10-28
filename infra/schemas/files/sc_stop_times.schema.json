@@ -1,0 +1,80 @@
+[
+  {
+    "name": "trip_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the trip"
+  },
+  {
+    "name": "stop_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the stop"
+  },
+  {
+    "name": "stop_sequence",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Order of stops for this trip"
+  },
+  {
+    "name": "arrival_time",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Arrival time at the stop"
+  },
+  {
+    "name": "departure_time",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Departure time from the stop"
+  },
+  {
+    "name": "stop_headsign",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Text that appears on signage identifying the trip"
+  },
+  {
+    "name": "pickup_type",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": ""
+  },
+  {
+    "name": "drop_off_type",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": ""
+  },
+  {
+    "name": "timepoint",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": ""
+  },
+  {
+    "name": "shape_dist_traveled",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Distance traveled along the shape from the first stop"
+  },
+  {
+    "name": "feed_hash",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Hash of the GTFS feed for data lineage"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  },
+  {
+    "name": "updated_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  }
+]

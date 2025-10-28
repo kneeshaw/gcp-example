@@ -1,0 +1,8 @@
+{
+  "table_name": "sc_routes",
+  "description": "Route information from GTFS schedule feeds",
+  "clustering": [
+    "feed_hash",
+    "route_id"
+  ]
+}

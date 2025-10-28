@@ -21,7 +21,7 @@ from google.cloud import bigquery
 from common.logging_utils import logger
 from schemas.schema_registry import get_schema_class
 from schemas.common.schema_utils import clean_and_validate_dataframe
-from big_query.upload import upload_to_bigquery
+from big_query.batch_insert import insert_batch
 
 
 def get_globals():
@@ -296,13 +296,11 @@ def run(request):
             table_name = f"{config['spec']}_{config['dataset'].replace('-', '_')}"
             result = None
             if not df_processed.empty:
-                result = upload_to_bigquery(
+                result = insert_batch(
                     df_processed,
                     table_name,
                     config['project_id'],
-                    config['bq_dataset'],
-                    upload_method='batch',
-                    deduplication_mode='none'
+                    config['bq_dataset']
                 )
                 logger.info(f"BigQuery ingestion result: {result}")
 

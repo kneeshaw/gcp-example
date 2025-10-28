@@ -22,16 +22,23 @@ def main(request: Dict[str, Any]) -> Dict[str, Any]:
     Determines function type from environment variables and routes accordingly.
     """
     function = os.environ.get('FUNCTION')
-    if function == 'ingest':
-        return _handle_ingest(request)
+    if function in ('ingest', 'fetch'):
+        return _handle_fetch(request)
+    elif function == 'transform':
+        return _handle_transform(request)
     elif function == 'generate':
         return _handle_daily_schedule(request)
     else:
         return _handle_enqueuer(request)
 
-def _handle_ingest(request: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle ingest functions (data ingestion)"""
-    from ingest.main import run
+def _handle_fetch(request: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle fetch functions (HTTP-triggered fetch + cache to GCS)"""
+    from fetch.main import run
+    return run(request)
+
+def _handle_transform(request: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle transform functions (batch process cached files to BigQuery)"""
+    from transform.main import run
     return run(request)
 
 def _handle_enqueuer(request: Dict[str, Any]) -> Dict[str, Any]:

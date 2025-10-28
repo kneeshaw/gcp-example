@@ -1,0 +1,62 @@
+[
+  {
+    "name": "fare_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the fare"
+  },
+  {
+    "name": "agency_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Agency identifier for the fare"
+  },
+  {
+    "name": "price",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Fare price"
+  },
+  {
+    "name": "currency_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Currency type for the fare price"
+  },
+  {
+    "name": "payment_method",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": ""
+  },
+  {
+    "name": "transfers",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": ""
+  },
+  {
+    "name": "transfer_duration",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Time in seconds until transfer expires"
+  },
+  {
+    "name": "feed_hash",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Hash of the GTFS feed for data lineage"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  },
+  {
+    "name": "updated_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  }
+]

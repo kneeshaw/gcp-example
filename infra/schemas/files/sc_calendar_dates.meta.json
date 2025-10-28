@@ -1,0 +1,9 @@
+{
+  "table_name": "sc_calendar_dates",
+  "description": "Service exception dates from GTFS schedule feeds",
+  "clustering": [
+    "feed_hash",
+    "service_id",
+    "date"
+  ]
+}

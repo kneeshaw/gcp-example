@@ -95,3 +95,7 @@ credentials.json
 .gcloud/
 **/dev.tfvars
 **/*.auto.tfvars
+
+# ---- Archives ----
+# Ignore the top-level archive folder
+/archive/

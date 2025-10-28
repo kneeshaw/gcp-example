@@ -1,0 +1,8 @@
+{
+  "table_name": "sc_calendar",
+  "description": "Service calendar information from GTFS schedule feeds",
+  "clustering": [
+    "feed_hash",
+    "service_id"
+  ]
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "from_stop_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Stop identifier where the transfer originates"
+  },
+  {
+    "name": "to_stop_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Stop identifier where the transfer arrives"
+  },
+  {
+    "name": "transfer_type",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": ""
+  },
+  {
+    "name": "min_transfer_time",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Minimum time in seconds required to transfer"
+  },
+  {
+    "name": "feed_hash",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Hash of the GTFS feed for data lineage"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  },
+  {
+    "name": "updated_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Auto-appended warehouse timestamp"
+  }
+]
