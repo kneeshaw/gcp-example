@@ -183,6 +183,7 @@ SELECT
   DATE(vp.timestamp) as service_date,
   COUNT(DISTINCT vp.vehicle_id) as vehicles_operated,
   COUNT(*) as total_positions,
+  -- source speed is already km/h
   AVG(vp.speed) as avg_speed_kmh,
   -- Add your metrics here
 FROM `regal-dynamo-470908-v9.auckland_data_dev.sc_routes` r

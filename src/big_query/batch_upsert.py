@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import Any, Dict
 
 import pandas as pd
@@ -45,27 +44,6 @@ def upsert_batch(
 
     original_columns = set(df.columns)
     df = df.copy()
-    
-    # Handle timestamps for upsert operation
-    current_time = datetime.utcnow()
-    
-    if "created_at" in target_columns:
-        if "created_at" not in df.columns:
-            # For upserts, new rows get created_at = NOW, existing rows keep their created_at
-            # We'll handle this in the MERGE SQL logic
-            df["created_at"] = current_time
-            logger.debug("Setting created_at to current time for new rows")
-        else:
-            # Fill null created_at values (these would be for new rows)
-            null_count = df["created_at"].isna().sum()
-            if null_count > 0:
-                df["created_at"] = df["created_at"].fillna(current_time)
-                logger.debug("Filled %d null created_at values with current time", null_count)
-    
-    if "updated_at" in target_columns:
-        # Always set updated_at to NOW for upserts (both new and existing rows)
-        df["updated_at"] = current_time
-        logger.debug("Setting updated_at to current time for all rows")
 
     extra_columns = original_columns - set(target_columns)
     if extra_columns:

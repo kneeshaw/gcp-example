@@ -305,3 +305,34 @@ module "bq_views" {
 
   depends_on = [google_bigquery_dataset.dataset, module.bq_tables]
 }
+
+# BigQuery routines (TVFs) from SQL files
+locals {
+  routine_defs = merge([
+    for dname, dcfg in local.datasets : {
+      for rname, rcfg in lookup(dcfg, "routines", {}) : "${dname}/${rname}" => {
+        ds_name     = dname
+        routine_name = rname
+        sql_file    = rcfg.sql_file
+        description = try(rcfg.description, "Routine for ${dname}/${rname}")
+        args         = try(rcfg.args, [])
+        return_columns = try(rcfg.return_columns, [])
+      }
+    }
+  ]...)
+}
+
+module "bq_routines" {
+  for_each  = local.routine_defs
+  source    = "../../../modules/bigquery_routine"
+
+  project_id  = var.project_id
+  dataset_id  = var.bq_dataset
+  routine_id  = lower(replace(each.value.routine_name, "-", "_"))
+  sql_file    = each.value.sql_file
+  description = each.value.description
+  arguments   = try(each.value.args, [])
+  return_columns = try(each.value.return_columns, [])
+
+  depends_on = [google_bigquery_dataset.dataset]
+}
