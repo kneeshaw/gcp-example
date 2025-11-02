@@ -111,7 +111,7 @@ CATEGORICAL_MAPPING = {
 # BigQuery-specific table configuration
 VehiclePositions._bigquery_table_name = "rt_vehicle_positions"
 VehiclePositions._description = "Real-time vehicle position data from GTFS-RT feeds"
-VehiclePositions._bigquery_clustering = ["entity_id"]
+VehiclePositions._bigquery_clustering = ["record_id", "entity_id"]
 VehiclePositions._bigquery_partitioning = {
     "type": "DAY",
     "field": "timestamp"

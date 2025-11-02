@@ -14,25 +14,8 @@ variable "routine_id" {
 }
 
 variable "sql_file" {
-  description = "Path to SQL file containing the TVF definition body"
+  description = "Path to SQL file containing the routine definition (TVF)"
   type        = string
-}
-
-variable "arguments" {
-  description = "List of routine argument definitions"
-  type = list(object({
-    name      = string
-    type_kind = string
-  }))
-  default = []
-}
-
-variable "return_columns" {
-  description = "List of return table column definitions"
-  type = list(object({
-    name      = string
-    type_kind = string
-  }))
 }
 
 variable "description" {
@@ -41,10 +24,22 @@ variable "description" {
   default     = null
 }
 
-variable "labels" {
-  description = "Optional labels for the routine"
-  type        = map(string)
-  default     = {}
+variable "arguments" {
+  description = "List of argument definitions for the routine (name/type_kind)"
+  type = list(object({
+    name      = string
+    type_kind = string
+  }))
+  default = []
+}
+
+variable "return_columns" {
+  description = "List of return columns (for TABLE_VALUED_FUNCTION) with name/type_kind"
+  type = list(object({
+    name      = string
+    type_kind = string
+  }))
+  default = []
 }
 
 resource "google_bigquery_routine" "tvf" {
@@ -52,10 +47,11 @@ resource "google_bigquery_routine" "tvf" {
   dataset_id  = var.dataset_id
   routine_id  = var.routine_id
   routine_type = "TABLE_VALUED_FUNCTION"
-  language    = "SQL"
+  language     = "SQL"
 
   description = var.description
 
+  // Render SQL with project/dataset variables if used in the SQL file
   definition_body = templatefile(var.sql_file, {
     project_id = var.project_id
     dataset_id = var.dataset_id
@@ -64,21 +60,27 @@ resource "google_bigquery_routine" "tvf" {
   dynamic "arguments" {
     for_each = var.arguments
     content {
-      name = arguments.value.name
-      data_type = jsonencode({ typeKind = arguments.value.type_kind })
+      name           = arguments.value.name
+      argument_kind  = "FIXED_TYPE"
+      data_type      = jsonencode({ typeKind = arguments.value.type_kind })
     }
   }
 
+  // Return table schema for TVF encoded as JSON
   return_table_type = jsonencode({
     columns = [for c in var.return_columns : {
       name = c.name
       type = { typeKind = c.type_kind }
     }]
   })
-
-  depends_on = []
 }
 
 output "routine_id" {
-  value = google_bigquery_routine.tvf.routine_id
+  description = "The routine ID"
+  value       = google_bigquery_routine.tvf.routine_id
+}
+
+output "routine_ref" {
+  description = "Full routine reference"
+  value       = "${var.project_id}.${var.dataset_id}.${google_bigquery_routine.tvf.routine_id}"
 }

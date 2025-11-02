@@ -96,7 +96,7 @@ COLS_MAPPING = {
 # BigQuery-specific table configuration
 TripUpdates._bigquery_table_name = "rt_trip_updates"
 TripUpdates._description = "Real-time trip update data from GTFS-RT feeds"
-TripUpdates._bigquery_clustering = ["entity_id"]
+TripUpdates._bigquery_clustering = ["record_id", "entity_id"]
 TripUpdates._bigquery_partitioning = {
     "type": "DAY",
     "field": "timestamp"

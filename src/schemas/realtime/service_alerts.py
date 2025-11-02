@@ -90,7 +90,7 @@ COLS_MAPPING = {
 # BigQuery-specific table configuration
 ServiceAlerts._bigquery_table_name = "rt_service_alerts"
 ServiceAlerts._description = "Real-time service alert data from GTFS-RT feeds"
-ServiceAlerts._bigquery_clustering = ["entity_id"]
+ServiceAlerts._bigquery_clustering = ["record_id", "entity_id"]
 ServiceAlerts._bigquery_partitioning = {
     "type": "DAY",
     "field": "timestamp"

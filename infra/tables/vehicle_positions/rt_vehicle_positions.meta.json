@@ -6,6 +6,7 @@
     "field": "timestamp"
   },
   "clustering": [
+    "record_id",
     "entity_id"
   ]
 }

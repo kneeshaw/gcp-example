@@ -1,0 +1,68 @@
+-- TripUpdates Fact View (stop events from RT)
+-- Emits one row per trip-stop update with observed/predicted flags and OTP classification
+-- Timezone: use UTC for bucketing in trip_updates views
+
+WITH base AS (
+  SELECT
+    -- Keys
+    CAST(trip_id AS STRING) AS trip_id,
+    CAST(start_date AS STRING) AS start_date,
+    CAST(stop_id AS STRING) AS stop_id,
+    CAST(stop_sequence AS INT64) AS stop_sequence,
+    CAST(route_id AS STRING) AS route_id,
+    -- Prefer RT direction_id if present; else join from schedule trips if needed upstream
+    CAST(direction_id AS INT64) AS direction_id,
+
+    -- Realtime identifiers
+    CAST(vehicle_id AS STRING) AS vehicle_id,
+    CAST(entity_id AS STRING) AS entity_id,
+    CAST(record_id AS STRING) AS record_id,
+
+    -- Realtime timestamps and delays
+    timestamp AS rt_timestamp,
+    actual_arrival,
+    actual_departure,
+    SAFE_CAST(arrival_delay AS INT64) AS arrival_delay_s,
+    SAFE_CAST(arrival_uncertainty AS INT64) AS arrival_uncertainty,
+    SAFE_CAST(departure_delay AS INT64) AS departure_delay_s,
+    SAFE_CAST(departure_uncertainty AS INT64) AS departure_uncertainty,
+    SAFE_CAST(schedule_relationship AS STRING) AS schedule_relationship
+  FROM `${project_id}.${dataset_id}.rt_trip_updates`
+  WHERE trip_id IS NOT NULL AND stop_id IS NOT NULL
+)
+SELECT
+  b.*,
+  -- Event timestamp used for bucketing: prefer actuals, fall back to feed timestamp
+  COALESCE(b.actual_arrival, b.actual_departure, b.rt_timestamp) AS event_ts_utc,
+  EXTRACT(HOUR FROM COALESCE(b.actual_arrival, b.actual_departure, b.rt_timestamp)) AS hour_of_day,
+  EXTRACT(DAYOFWEEK FROM COALESCE(b.actual_arrival, b.actual_departure, b.rt_timestamp)) AS day_of_week,
+
+  -- Observation vs prediction classification
+  IF(b.actual_arrival IS NOT NULL
+     AND b.actual_arrival <= b.rt_timestamp
+     AND COALESCE(b.arrival_uncertainty, 1) = 0, TRUE, FALSE) AS arrival_is_observed,
+  IF(b.actual_departure IS NOT NULL
+     AND b.actual_departure <= b.rt_timestamp
+     AND COALESCE(b.departure_uncertainty, 1) = 0, TRUE, FALSE) AS departure_is_observed,
+  IF(b.actual_arrival IS NOT NULL
+     AND (b.actual_arrival > b.rt_timestamp OR COALESCE(b.arrival_uncertainty, 0) > 0), TRUE, FALSE) AS arrival_is_predicted,
+  IF(b.actual_departure IS NOT NULL
+     AND (b.actual_departure > b.rt_timestamp OR COALESCE(b.departure_uncertainty, 0) > 0), TRUE, FALSE) AS departure_is_predicted,
+
+  -- Collapsed flags (prefer arrival if present)
+  COALESCE(
+    IF(b.actual_arrival IS NOT NULL, IF(b.actual_arrival <= b.rt_timestamp AND COALESCE(b.arrival_uncertainty, 1) = 0, TRUE, FALSE), NULL),
+    IF(b.actual_departure IS NOT NULL, IF(b.actual_departure <= b.rt_timestamp AND COALESCE(b.departure_uncertainty, 1) = 0, TRUE, FALSE), NULL),
+    FALSE
+  ) AS is_observed,
+  COALESCE(
+    IF(b.actual_arrival IS NOT NULL, IF(b.actual_arrival > b.rt_timestamp OR COALESCE(b.arrival_uncertainty, 0) > 0, TRUE, FALSE), NULL),
+    IF(b.actual_departure IS NOT NULL, IF(b.actual_departure > b.rt_timestamp OR COALESCE(b.departure_uncertainty, 0) > 0, TRUE, FALSE), NULL),
+    FALSE
+  ) AS is_predicted,
+
+  -- Early/late seconds and OTP classification ([-60s, +300s])
+  COALESCE(b.arrival_delay_s, b.departure_delay_s) AS early_late_s,
+  IF(COALESCE(b.arrival_delay_s, b.departure_delay_s) BETWEEN -60 AND 300, TRUE, FALSE) AS otp_flag
+FROM base b
+;
