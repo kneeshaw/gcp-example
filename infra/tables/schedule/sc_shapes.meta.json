@@ -1,9 +1,0 @@
-{
-  "table_name": "sc_shapes",
-  "description": "Shape geometry points for GTFS schedule feeds",
-  "clustering": [
-    "feed_hash",
-    "shape_id",
-    "shape_pt_sequence"
-  ]
-}

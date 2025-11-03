@@ -1,7 +1,0 @@
-{
-  "table_name": "sc_feed_info",
-  "description": "Feed metadata and publisher information from GTFS schedule feeds",
-  "clustering": [
-    "feed_hash"
-  ]
-}

@@ -19,7 +19,7 @@ import os
 from google.cloud import bigquery
 
 from common.logging_utils import logger
-from schemas.schema_registry import get_schema_class
+from src.schemas.common.schema_registry import get_schema_class
 from schemas.common.schema_utils import clean_and_validate_dataframe
 from big_query.batch_insert import insert_batch
 
@@ -293,7 +293,7 @@ def run(request):
             df_processed = clean_and_validate_dataframe(schedule_df, schema_class)
 
             # Prepare table name and upload if we have rows post-validation
-            table_name = f"{config['spec']}_{config['dataset'].replace('-', '_')}"
+            table_name = f"stg_{config['dataset'].replace('-', '_')}"
             result = None
             if not df_processed.empty:
                 result = insert_batch(
@@ -304,7 +304,7 @@ def run(request):
                 )
                 logger.info(f"BigQuery ingestion result: {result}")
 
-            # Ingest-style response
+            # Ingest-style responses
             object_name = table_name
             row_count = int(len(df_processed)) if df_processed is not None else int(len(schedule_df))
             return ({

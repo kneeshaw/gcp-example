@@ -74,20 +74,9 @@ resource "google_storage_bucket_iam_member" "functions_storage_admin" {
   member = "serviceAccount:${google_service_account.functions.email}"
 }
 
-// Iterate datasets
-// Merge shared dataset catalog with agency-specific overrides.
-// Shallow merge: agency var.datasets overrides keys present in the catalog; if a dataset omits `tables`, the shared tables apply.
-module "dataset_catalog" {
-  source       = "../../../modules/dataset_catalog"
-  schemas_root = "${path.module}/../../../tables"
-}
-
+// Datasets configuration (now sourced directly from var.datasets)
 locals {
-  common_datasets = module.dataset_catalog.datasets
-  datasets = {
-    for k in toset(concat(keys(local.common_datasets), keys(var.datasets))) :
-    k => merge(lookup(local.common_datasets, k, {}), lookup(var.datasets, k, {}))
-  }
+  datasets = var.datasets
 }
 
 # IAM for BigQuery edits (transform)
@@ -241,24 +230,16 @@ output "fetch_urls" { value = { for k, m in module.functions : split("/", k)[0] 
 output "transform_urls" { value = { for k, m in module.functions : split("/", k)[0] => m.uri if endswith(k, "/transform") } }
 output "enqueuer_urls" { value = { for k, m in module.enqueuer : k => m.enqueuer_uri } }
 
-# BigQuery tables (create per-dataset table from provided schema files)
+# BigQuery tables
 locals {
-  table_defs = merge([
-    for dname, dcfg in local.datasets : {
-      for tname, tcfg in lookup(dcfg, "tables", {}) : "${dname}/${tname}" => {
-        ds_name     = dname
-        spec        = dcfg.spec
-        schema_file = tcfg.schema_file
-  # Derive physical table name from schema filename (e.g., rt_vehicle_positions.schema.json -> rt_vehicle_positions)
-  table_name = replace(element(reverse(split("/", tcfg.schema_file)), 0), ".schema.json", "")
-        # Derive optional meta file path unless explicitly provided. Use try() to safely read if present.
-        meta_file   = try(tcfg.meta_file, replace(tcfg.schema_file, ".schema.json", ".meta.json"))
-        partition_type  = try(upper(jsondecode(file(try(tcfg.meta_file, replace(tcfg.schema_file, ".schema.json", ".meta.json")))).partitioning.type), null)
-        partition_field = try(jsondecode(file(try(tcfg.meta_file, replace(tcfg.schema_file, ".schema.json", ".meta.json")))).partitioning.field, null)
-        clustering      = try(jsondecode(file(try(tcfg.meta_file, replace(tcfg.schema_file, ".schema.json", ".meta.json")))).clustering, [])
-      }
+  stg_models_dir = "${path.module}/../../../models/stg"
+  stg_table_files = fileset(local.stg_models_dir, "*.table.json")
+  table_defs = {
+    for f in local.stg_table_files : replace(basename(f), ".table.json", "") => {
+      table_name        = replace(basename(f), ".table.json", "")
+      table_config_file = "${local.stg_models_dir}/${f}"
     }
-  ]...)
+  }
 }
 
 module "bq_tables" {
@@ -267,72 +248,42 @@ module "bq_tables" {
 
   project_id = var.project_id
   dataset_id = var.bq_dataset
-  # Use the table_name derived from the schema filename, ensures schedule tables (sc_*) and realtime (rt_*) are explicit
+  # Use the table_name derived from the .table.json filename
   table_id   = lower(replace(each.value.table_name, "-", "_"))
-  schema_json = file(each.value.schema_file)
-  partition_type  = try(each.value.partition_type, null)
-  partition_field = try(each.value.partition_field, null)
-  clustering      = try(each.value.clustering, [])
+  table_config_file = each.value.table_config_file
   # Allow replacement to apply meta changes (dev). Consider toggling back to true after migration.
   deletion_protection = false
 
   depends_on = [google_bigquery_dataset.dataset]
 }
 
-# BigQuery views (create per-dataset views from SQL files)
+# BigQuery views (build directly from SQL files under infra/models/*)
 locals {
-  view_defs = merge([
-    for dname, dcfg in local.datasets : {
-      for vname, vcfg in lookup(dcfg, "views", {}) : "${dname}/${vname}" => {
-        ds_name     = dname
-        view_name   = vname
-        sql_file    = vcfg.sql_file
-        description = try(vcfg.description, "View for ${dname}/${vname}")
-      }
+  models_dir   = "${path.module}/../../../models"
+  view_files   = distinct(concat(
+    tolist(fileset(local.models_dir, "fct/**/*.sql")),
+    tolist(fileset(local.models_dir, "dim/**/*.sql")),
+    tolist(fileset(local.models_dir, "agg/**/*.sql")),
+    tolist(fileset(local.models_dir, "mdl/**/*.sql")),
+    tolist(fileset(local.models_dir, "baseline/**/*.sql"))
+  ))
+  folder_views = {
+    for f in local.view_files : replace(basename(f), ".sql", "") => {
+      sql_file    = "${local.models_dir}/${f}"
+      description = "View from ${f}"
     }
-  ]...)
+  }
 }
 
 module "bq_views" {
-  for_each = local.view_defs
+  for_each = local.folder_views
   source   = "../../../modules/bigquery_view"
 
   project_id  = var.project_id
   dataset_id  = var.bq_dataset
-  view_id     = lower(replace("vw_${each.value.view_name}", "-", "_"))
+  view_id     = lower(replace(each.key, "-", "_"))
   sql_file    = each.value.sql_file
   description = each.value.description
 
   depends_on = [google_bigquery_dataset.dataset, module.bq_tables]
-}
-
-# BigQuery routines (TVFs) from SQL files
-locals {
-  routine_defs = merge([
-    for dname, dcfg in local.datasets : {
-      for rname, rcfg in lookup(dcfg, "routines", {}) : "${dname}/${rname}" => {
-        ds_name     = dname
-        routine_name = rname
-        sql_file    = rcfg.sql_file
-        description = try(rcfg.description, "Routine for ${dname}/${rname}")
-        args         = try(rcfg.args, [])
-        return_columns = try(rcfg.return_columns, [])
-      }
-    }
-  ]...)
-}
-
-module "bq_routines" {
-  for_each  = local.routine_defs
-  source    = "../../../modules/bigquery_routine"
-
-  project_id  = var.project_id
-  dataset_id  = var.bq_dataset
-  routine_id  = lower(replace(each.value.routine_name, "-", "_"))
-  sql_file    = each.value.sql_file
-  description = each.value.description
-  arguments   = try(each.value.args, [])
-  return_columns = try(each.value.return_columns, [])
-
-  depends_on = [google_bigquery_dataset.dataset]
 }

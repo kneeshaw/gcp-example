@@ -1,8 +1,0 @@
-{
-  "table_name": "sc_fare_attributes",
-  "description": "Fare pricing and rules from GTFS schedule feeds",
-  "clustering": [
-    "feed_hash",
-    "fare_id"
-  ]
-}

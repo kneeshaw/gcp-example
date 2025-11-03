@@ -1,0 +1,97 @@
+{
+  "schema": {
+    "fields": [
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Row creation timestamp (warehouse)"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Last update timestamp (warehouse)"
+      },
+      {
+        "name": "route_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique identifier for the route"
+      },
+      {
+        "name": "agency_id",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Agency identifier this route belongs to"
+      },
+      {
+        "name": "route_short_name",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Short name of the route"
+      },
+      {
+        "name": "route_long_name",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Full name of the route"
+      },
+      {
+        "name": "route_desc",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Description of the route"
+      },
+      {
+        "name": "route_type",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Type of transportation used on the route"
+      },
+      {
+        "name": "route_url",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "URL of a web page about the route"
+      },
+      {
+        "name": "route_color",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Route color designation (hex color)"
+      },
+      {
+        "name": "route_text_color",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Route text color designation (hex color)"
+      },
+      {
+        "name": "route_sort_order",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Order for sorting routes in lists"
+      },
+      {
+        "name": "contract_id",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Identifier for the contract associated with the route"
+      },
+      {
+        "name": "feed_hash",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Hash of the GTFS feed for data lineage"
+      }
+    ]
+  },
+  "description": "Route information from GTFS schedule feeds",
+  "clustering": {
+    "fields": [
+      "feed_hash",
+      "route_id"
+    ]
+  }
+}

@@ -1,9 +1,0 @@
-{
-  "table_name": "sc_trips",
-  "description": "Trip information from GTFS schedule feeds",
-  "clustering": [
-    "feed_hash",
-    "route_id",
-    "trip_id"
-  ]
-}

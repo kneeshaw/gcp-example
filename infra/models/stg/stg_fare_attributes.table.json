@@ -1,0 +1,73 @@
+{
+  "schema": {
+    "fields": [
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Row creation timestamp (warehouse)"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Last update timestamp (warehouse)"
+      },
+      {
+        "name": "fare_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique identifier for the fare"
+      },
+      {
+        "name": "agency_id",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Agency identifier for the fare"
+      },
+      {
+        "name": "price",
+        "type": "FLOAT",
+        "mode": "REQUIRED",
+        "description": "Fare price"
+      },
+      {
+        "name": "currency_type",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Currency type for the fare price"
+      },
+      {
+        "name": "payment_method",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Payment method (0=onboard, 1=before boarding)"
+      },
+      {
+        "name": "transfers",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Number of transfers allowed (0=no, 1=once, 2=twice, empty=unlimited)"
+      },
+      {
+        "name": "transfer_duration",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Time in seconds until transfer expires"
+      },
+      {
+        "name": "feed_hash",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Hash of the GTFS feed for data lineage"
+      }
+    ]
+  },
+  "description": "Fare pricing and rules from GTFS schedule feeds",
+  "clustering": {
+    "fields": [
+      "feed_hash",
+      "fare_id"
+    ]
+  }
+}

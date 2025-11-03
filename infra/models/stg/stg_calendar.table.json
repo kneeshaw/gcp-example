@@ -1,0 +1,91 @@
+{
+  "schema": {
+    "fields": [
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Row creation timestamp (warehouse)"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Last update timestamp (warehouse)"
+      },
+      {
+        "name": "service_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique identifier for the service"
+      },
+      {
+        "name": "monday",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Service available on Mondays (1=yes, 0=no)"
+      },
+      {
+        "name": "tuesday",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Service available on Tuesdays (1=yes, 0=no)"
+      },
+      {
+        "name": "wednesday",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Service available on Wednesdays (1=yes, 0=no)"
+      },
+      {
+        "name": "thursday",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Service available on Thursdays (1=yes, 0=no)"
+      },
+      {
+        "name": "friday",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Service available on Fridays (1=yes, 0=no)"
+      },
+      {
+        "name": "saturday",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Service available on Saturdays (1=yes, 0=no)"
+      },
+      {
+        "name": "sunday",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Service available on Sundays (1=yes, 0=no)"
+      },
+      {
+        "name": "start_date",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Start date of the service in YYYYMMDD format"
+      },
+      {
+        "name": "end_date",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "End date of the service in YYYYMMDD format"
+      },
+      {
+        "name": "feed_hash",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Hash of the GTFS feed for data lineage"
+      }
+    ]
+  },
+  "description": "Service calendar information from GTFS schedule feeds",
+  "clustering": {
+    "fields": [
+      "feed_hash",
+      "service_id"
+    ]
+  }
+}

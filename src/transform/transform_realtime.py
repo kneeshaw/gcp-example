@@ -11,7 +11,7 @@ from google.cloud import storage
 
 from common.logging_utils import logger
 from schemas.common.schema_utils import clean_and_validate_dataframe
-from schemas.schema_registry import get_schema_class
+from schemas.common.schema_registry import get_schema_class
 from big_query.batch_upsert import upsert_batch
 from .transform_utils import (
     Timer,
@@ -136,7 +136,7 @@ def process_realtime_batch(
         logger.info("Realtime batch had no rows after validation; skipping upload.")
         return build_response(dataset, "no_rows", rows=0, processed=processed, moved=0)
 
-    table_name = f"{cfg['spec']}_{dataset.replace('-', '_')}"
+    table_name = f"stg_{dataset.replace('-', '_')}"
 
     try:
         with Timer() as upload_timer:

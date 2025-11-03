@@ -1,0 +1,103 @@
+-- Trip Fact: roll up stop-event metrics to per-trip per service_date
+-- Source: fct_trip_event (combined schedule + realtime stop events)
+
+WITH events AS (
+  SELECT * FROM `${project_id}.${dataset_id}.fct_trip_event`
+), per_trip AS (
+  SELECT
+    -- Service and trip context
+    e.service_date_dt,
+    e.service_date,
+    e.feed_hash,
+    e.route_id,
+    e.direction_id,
+    e.trip_id,
+    ANY_VALUE(e.route_short_name) AS route_short_name,
+    ANY_VALUE(e.trip_headsign)    AS trip_headsign,
+    ANY_VALUE(e.shape_id)         AS shape_id,
+
+    -- First/last stop ids/names by stop_sequence
+    (ARRAY_AGG(e.stop_id   ORDER BY e.stop_sequence ASC LIMIT 1))[OFFSET(0)] AS first_stop_id,
+    (ARRAY_AGG(e.stop_name ORDER BY e.stop_sequence ASC LIMIT 1))[OFFSET(0)] AS first_stop_name,
+    (ARRAY_AGG(e.stop_id   ORDER BY e.stop_sequence DESC LIMIT 1))[OFFSET(0)] AS last_stop_id,
+    (ARRAY_AGG(e.stop_name ORDER BY e.stop_sequence DESC LIMIT 1))[OFFSET(0)] AS last_stop_name,
+
+    -- Planned start/end and runtime
+    MIN(e.scheduled_departure) AS planned_first_departure,
+    MAX(e.scheduled_arrival)   AS planned_last_arrival,
+    SAFE_CAST(TIMESTAMP_DIFF(MAX(e.scheduled_arrival), MIN(e.scheduled_departure), SECOND) AS INT64) AS planned_runtime_s,
+
+    -- Actual start/end and runtime (nullable if either end missing)
+    MIN(e.actual_departure) AS actual_first_departure,
+    MAX(e.actual_arrival)   AS actual_last_arrival,
+    CASE
+      WHEN MIN(e.actual_departure) IS NOT NULL AND MAX(e.actual_arrival) IS NOT NULL
+        THEN SAFE_CAST(TIMESTAMP_DIFF(MAX(e.actual_arrival), MIN(e.actual_departure), SECOND) AS INT64)
+      ELSE NULL
+    END AS actual_runtime_s,
+
+    -- Dwell totals
+    SUM(GREATEST(TIMESTAMP_DIFF(e.scheduled_departure, e.scheduled_arrival, SECOND), 0)) AS planned_dwell_s,
+    SUM(
+      CASE
+        WHEN e.actual_arrival IS NOT NULL AND e.actual_departure IS NOT NULL
+          THEN GREATEST(TIMESTAMP_DIFF(e.actual_departure, e.actual_arrival, SECOND), 0)
+        ELSE 0
+      END
+    ) AS actual_dwell_s,
+
+    -- Travel totals (runtime - dwell), nullable if runtime is null
+    CASE WHEN
+      MIN(e.scheduled_departure) IS NOT NULL AND MAX(e.scheduled_arrival) IS NOT NULL
+      THEN SAFE_CAST(TIMESTAMP_DIFF(MAX(e.scheduled_arrival), MIN(e.scheduled_departure), SECOND) AS INT64)
+           - SUM(GREATEST(TIMESTAMP_DIFF(e.scheduled_departure, e.scheduled_arrival, SECOND), 0))
+      ELSE NULL
+    END AS planned_travel_s,
+    CASE WHEN
+      MIN(e.actual_departure) IS NOT NULL AND MAX(e.actual_arrival) IS NOT NULL
+      THEN SAFE_CAST(TIMESTAMP_DIFF(MAX(e.actual_arrival), MIN(e.actual_departure), SECOND) AS INT64)
+           - SUM(
+             CASE
+               WHEN e.actual_arrival IS NOT NULL AND e.actual_departure IS NOT NULL
+                 THEN GREATEST(TIMESTAMP_DIFF(e.actual_departure, e.actual_arrival, SECOND), 0)
+               ELSE 0
+             END
+           )
+      ELSE NULL
+    END AS actual_travel_s,
+
+    -- Stop counts and coverage
+    COUNT(*) AS planned_stop_count,
+    COUNTIF(e.actual_arrival IS NOT NULL OR e.actual_departure IS NOT NULL) AS rt_stop_count,
+    COUNTIF(e.is_observed)   AS observed_stop_count,
+    COUNTIF(e.is_predicted)  AS predicted_stop_count,
+    SAFE_DIVIDE(COUNTIF(e.actual_arrival IS NOT NULL OR e.actual_departure IS NOT NULL), COUNT(*)) AS rt_coverage_ratio,
+
+    -- Delay and on-time performance
+    AVG(e.early_late_s) AS avg_early_late_s,
+    (APPROX_QUANTILES(e.early_late_s, 2))[OFFSET(1)] AS p50_early_late_s,
+    AVG(CASE WHEN e.otp_flag THEN 1 ELSE 0 END) AS otp_stop_ratio,
+
+    -- Trip-level OTP: OTP of the last stop event (when available)
+    (ARRAY_AGG(e.otp_flag ORDER BY e.stop_sequence DESC LIMIT 1))[OFFSET(0)] AS trip_otp_flag,
+
+    -- Realtime envelope across the trip
+    MIN(e.rt_event_ts_utc) AS first_rt_event_ts_utc,
+    MAX(e.rt_event_ts_utc) AS last_rt_event_ts_utc,
+
+    -- Status flags across the trip
+    LOGICAL_OR(e.schedule_relationship = 'CANCELED') AS is_canceled,
+    LOGICAL_OR(e.schedule_relationship = 'NO_DATA')  AS is_no_data,
+    LOGICAL_OR(e.is_observed)  AS any_observed,
+    LOGICAL_OR(e.is_predicted) AS any_predicted,
+
+    -- Representative vehicle id (mode across events)
+    (APPROX_TOP_COUNT(e.vehicle_id, 1))[SAFE_OFFSET(0)].value AS vehicle_id
+
+  FROM events e
+  GROUP BY
+    e.service_date_dt, e.service_date, e.feed_hash,
+    e.route_id, e.direction_id, e.trip_id
+)
+
+SELECT * FROM per_trip;

@@ -13,7 +13,7 @@ from google.cloud import storage
 
 from common.logging_utils import logger
 from schemas.common.schema_utils import clean_and_validate_dataframe
-from schemas.schema_registry import get_schema_class
+from schemas.common.schema_registry import get_schema_class
 from big_query.batch_insert import insert_batch
 from .transform_utils import Timer, build_response, read_blob_bytes
 
@@ -105,7 +105,7 @@ def _process_schedule_blob(cfg: Dict[str, str], blob: storage.Blob, zip_bytes: b
                     files_skipped.append(filename)
                     continue
 
-                table_name = f"{cfg['spec']}_{dataset_key.replace('-', '_')}"
+                table_name = f"stg_{dataset_key.replace('-', '_')}"
                 insert_seconds = 0.0
                 try:
                     insert_start = monotonic()

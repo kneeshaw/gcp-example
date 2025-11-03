@@ -1,9 +1,0 @@
-{
-  "table_name": "sc_fare_rules",
-  "description": "Fare rules and zone restrictions from GTFS schedule feeds",
-  "clustering": [
-    "feed_hash",
-    "fare_rules_fare_id",
-    "route_id"
-  ]
-}

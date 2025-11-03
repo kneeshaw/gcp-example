@@ -1,0 +1,173 @@
+{
+  "schema": {
+    "fields": [
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Row creation timestamp (warehouse)"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Last update timestamp (warehouse)"
+      },
+      {
+        "name": "record_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique identifier for this trip update record"
+      },
+      {
+        "name": "entity_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "GTFS-RT entity identifier for this trip update"
+      },
+      {
+        "name": "timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED",
+        "description": "Timestamp when this trip update was recorded"
+      },
+      {
+        "name": "timestamp_s",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Unix timestamp in seconds"
+      },
+      {
+        "name": "route_id",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Route identifier this trip belongs to"
+      },
+      {
+        "name": "trip_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Trip identifier this update applies to"
+      },
+      {
+        "name": "start_date",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Start date of the trip in YYYYMMDD format"
+      },
+      {
+        "name": "start_time",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Scheduled start time of the trip"
+      },
+      {
+        "name": "direction_id",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Direction of travel (0 or 1)"
+      },
+      {
+        "name": "schedule_relationship",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Relationship to the scheduled trip"
+      },
+      {
+        "name": "delay",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Delay in seconds from scheduled time"
+      },
+      {
+        "name": "stop_sequence",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Sequence number of the stop in the trip"
+      },
+      {
+        "name": "stop_id",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Stop identifier this update applies to"
+      },
+      {
+        "name": "actual_arrival",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Actual arrival time at the stop (UTC)"
+      },
+      {
+        "name": "actual_arrival_s",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Actual arrival time in Unix seconds"
+      },
+      {
+        "name": "arrival_delay",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Arrival delay in seconds"
+      },
+      {
+        "name": "arrival_uncertainty",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Uncertainty of arrival time in seconds"
+      },
+      {
+        "name": "actual_departure",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Actual departure time from the stop (UTC)"
+      },
+      {
+        "name": "actual_departure_s",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Actual departure time in Unix seconds"
+      },
+      {
+        "name": "departure_delay",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Departure delay in seconds"
+      },
+      {
+        "name": "departure_uncertainty",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Uncertainty of departure time in seconds"
+      },
+      {
+        "name": "vehicle_id",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Vehicle identifier serving this trip"
+      },
+      {
+        "name": "vehicle_label",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "User-visible vehicle label"
+      },
+      {
+        "name": "vehicle_license_plate",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Vehicle license plate number"
+      }
+    ]
+  },
+  "description": "Real-time trip update data from GTFS-RT feeds",
+  "timePartitioning": {
+    "type": "DAY",
+    "field": "timestamp"
+  },
+  "clustering": {
+    "fields": [
+      "record_id",
+      "entity_id"
+    ]
+  }
+}

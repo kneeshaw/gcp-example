@@ -1,0 +1,56 @@
+{
+  "schema": {
+    "fields": [
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Row creation timestamp (warehouse)"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE",
+        "description": "Last update timestamp (warehouse)"
+      },
+      {
+        "name": "from_stop_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Stop identifier where the transfer originates"
+      },
+      {
+        "name": "to_stop_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Stop identifier where the transfer arrives"
+      },
+      {
+        "name": "transfer_type",
+        "type": "INT64",
+        "mode": "REQUIRED",
+        "description": "Type of transfer (0=recommended, 1=timed, 2=min time, 3=not possible)"
+      },
+      {
+        "name": "min_transfer_time",
+        "type": "INT64",
+        "mode": "NULLABLE",
+        "description": "Minimum time in seconds required to transfer"
+      },
+      {
+        "name": "feed_hash",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Hash of the GTFS feed for data lineage"
+      }
+    ]
+  },
+  "description": "Transfer rules between stops from GTFS schedule feeds",
+  "clustering": {
+    "fields": [
+      "feed_hash",
+      "from_stop_id",
+      "to_stop_id"
+    ]
+  }
+}

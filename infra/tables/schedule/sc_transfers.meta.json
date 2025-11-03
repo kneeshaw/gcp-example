@@ -1,9 +1,0 @@
-{
-  "table_name": "sc_transfers",
-  "description": "Transfer rules between stops from GTFS schedule feeds",
-  "clustering": [
-    "feed_hash",
-    "from_stop_id",
-    "to_stop_id"
-  ]
-}

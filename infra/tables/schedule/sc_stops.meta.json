@@ -1,8 +1,0 @@
-{
-  "table_name": "sc_stops",
-  "description": "Stop and station information from GTFS schedule feeds",
-  "clustering": [
-    "feed_hash",
-    "stop_id"
-  ]
-}
