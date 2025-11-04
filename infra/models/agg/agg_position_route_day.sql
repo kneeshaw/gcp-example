@@ -7,6 +7,7 @@
 --
 SELECT
   service_date,
+  EXTRACT(DAYOFWEEK FROM service_date) AS dow_local,
   route_id,
   route_short_name,
   route_long_name,
@@ -35,6 +36,6 @@ SELECT
 FROM
   `${project_id}.${dataset_id}.agg_position_route_hour`
 GROUP BY
-  1, 2, 3, 4, 5
+  1, 2, 3, 4, 5, 6
 ORDER BY
   service_date, route_id;

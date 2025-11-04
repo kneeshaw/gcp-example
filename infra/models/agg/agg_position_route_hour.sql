@@ -9,6 +9,7 @@
 SELECT
   p.service_date,
   p.hour_local,
+  EXTRACT(DAYOFWEEK FROM p.service_date) AS dow_local,
   p.route_id,
   r.route_short_name,
   r.route_long_name,
@@ -34,6 +35,6 @@ LEFT JOIN
 WHERE
   p.route_id IS NOT NULL
 GROUP BY
-  1, 2, 3, 4, 5, 6
+  1, 2, 3, 4, 5, 6, 7
 ORDER BY
   service_date, hour_local, route_id;

@@ -7,6 +7,7 @@
 --
 SELECT
   service_date,
+  EXTRACT(DAYOFWEEK FROM service_date) AS dow_local,
   vehicle_id,
   route_mode,
 
@@ -32,6 +33,6 @@ SELECT
 FROM
   `${project_id}.${dataset_id}.agg_position_vehicle_hour`
 GROUP BY
-  1, 2, 3
+  1, 2, 3, 4
 ORDER BY
   service_date, vehicle_id;

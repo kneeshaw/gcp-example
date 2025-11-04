@@ -8,6 +8,7 @@
 SELECT
   p.service_date,
   p.hour_local,
+  EXTRACT(DAYOFWEEK FROM p.service_date) AS dow_local,
   p.route_mode,
 
   -- Key Performance Indicators
@@ -27,6 +28,6 @@ FROM
 WHERE
   p.route_mode IS NOT NULL
 GROUP BY
-  1, 2, 3
+  1, 2, 3, 4
 ORDER BY
   service_date, hour_local, route_mode;

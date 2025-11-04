@@ -7,6 +7,7 @@
 --
 SELECT
   service_date,
+  EXTRACT(DAYOFWEEK FROM service_date) AS dow_local,
   route_mode,
 
   -- Weighted average for speed, using position_count as the weight.
@@ -31,6 +32,6 @@ SELECT
 FROM
   `${project_id}.${dataset_id}.agg_position_mode_hour`
 GROUP BY
-  1, 2
+  1, 2, 3
 ORDER BY
   service_date, route_mode;

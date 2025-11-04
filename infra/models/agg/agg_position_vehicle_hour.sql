@@ -26,9 +26,12 @@ vehicle_hour_base AS (
 SELECT
   v.service_date,
   v.hour_local,
+  EXTRACT(DAYOFWEEK FROM v.service_date) AS dow_local,
   v.vehicle_id,
+  -- The most representative route_id for the vehicle in that hour
+  (APPROX_TOP_COUNT(v.route_id, 1))[SAFE_OFFSET(0)].value AS route_id,
   v.route_mode,
-  
+
   -- Key Performance Indicators
   AVG(v.speed_kmh) AS avg_speed_kmh,
   COUNT(v.vehicle_id) AS position_count,
@@ -42,6 +45,6 @@ SELECT
 FROM
   vehicle_hour_base AS v
 GROUP BY
-  1, 2, 3, 4
+  1, 2, 3, 4, 6
 ORDER BY
   service_date, hour_local, vehicle_id;
