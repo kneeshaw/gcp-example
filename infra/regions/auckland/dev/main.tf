@@ -269,38 +269,39 @@ module "bq_tables" {
   depends_on = [google_bigquery_dataset.dataset]
 }
 
-# Seed dim_region from environment variables (idempotent)
+# Seed dim_region by loading a single-row JSONL from GCS (avoids DML disposition issues)
+resource "google_storage_bucket_object" "dim_region_seed" {
+  bucket = google_storage_bucket.data.name
+  name   = "seed/dim_region.jsonl"
+  content = "${jsonencode({
+    region_prefix      = var.region_prefix,
+    region_name        = var.region_name,
+    transit_authority  = var.transit_authority,
+    timezone           = var.timezone,
+    svc_boundary_hour  = var.service_boundary_hour
+  })}\n"
+
+  depends_on = [google_storage_bucket.data]
+}
+
 resource "google_bigquery_job" "seed_dim_region" {
   project  = var.project_id
   location = var.gcp_region
-  job_id   = "seed-dim-region-${var.bq_dataset}-${random_id.dim_region_seed.hex}"
+  job_id   = "seed-dim-region-load-${var.bq_dataset}-${formatdate("YYYYMMDDHHmmss", timestamp())}"
 
-  # ensure table exists first (tables are built from infra/models/stg/*.table.json)
-  depends_on = [module.bq_tables["dim_region"]]
+  # Ensure table and seed file exist
+  depends_on = [module.bq_tables["dim_region"], google_storage_bucket_object.dim_region_seed]
 
-  query {
-    use_legacy_sql = false
-    query = <<-SQL
-      MERGE `${var.project_id}.${var.bq_dataset}.dim_region` T
-      USING (
-        SELECT
-          -- Ensure non-empty ID and sane defaults
-          UPPER(NULLIF("${var.region_prefix}", "")) AS region_id,
-          COALESCE(NULLIF("${coalesce(var.region_name, var.transit_authority)}", ""), UPPER(NULLIF("${var.region_prefix}", ""))) AS region_name,
-          COALESCE(NULLIF("${var.timezone}", ""), "UTC") AS timezone,
-          CAST(GREATEST(0, LEAST(23, ${var.service_boundary_hour})) AS INT64) AS svc_boundary_hour
-      ) S
-      ON T.region_id = S.region_id
-      WHEN MATCHED THEN
-        UPDATE SET
-          region_name = S.region_name,
-          timezone = S.timezone,
-          svc_boundary_hour = S.svc_boundary_hour,
-          updated_at = CURRENT_TIMESTAMP()
-      WHEN NOT MATCHED THEN
-        INSERT (region_id, region_name, timezone, svc_boundary_hour, updated_at)
-        VALUES (S.region_id, S.region_name, S.timezone, S.svc_boundary_hour, CURRENT_TIMESTAMP())
-    SQL
+  load {
+    source_uris = ["gs://${google_storage_bucket.data.name}/${google_storage_bucket_object.dim_region_seed.name}"]
+    destination_table {
+      project_id = var.project_id
+      dataset_id = var.bq_dataset
+      table_id   = "dim_region"
+    }
+    source_format     = "NEWLINE_DELIMITED_JSON"
+    write_disposition = "WRITE_TRUNCATE"
+    autodetect        = false
   }
 }
 
@@ -364,4 +365,3 @@ module "bq_views" {
 
   depends_on = [google_bigquery_dataset.dataset, module.bq_tables, module.bq_views_base]
 }
-

@@ -2,8 +2,9 @@
   "description": "Regional/service-authority configuration (timezone and service-day boundary).",
   "schema": {
     "fields": [
-      { "name": "region_id",         "type": "STRING",  "mode": "REQUIRED", "description": "Short code, e.g. AKL" },
-      { "name": "region_name",       "type": "STRING",  "mode": "REQUIRED", "description": "Display name, e.g. Auckland Transport" },
+      { "name": "region_prefix",         "type": "STRING",  "mode": "REQUIRED", "description": "Short code, e.g. AKL" },
+      { "name": "region_name",       "type": "STRING",  "mode": "REQUIRED", "description": "Display name, e.g. Auckland" },
+      { "name": "transit_authority", "type": "STRING",  "mode": "REQUIRED", "description": "Authority name, e.g. Auckland Transport" },
       { "name": "timezone",          "type": "STRING",  "mode": "REQUIRED", "description": "IANA TZ, e.g. Pacific/Auckland" },
       { "name": "svc_boundary_hour", "type": "INT64",   "mode": "REQUIRED", "description": "Hour-of-day local when service day rolls over (0–23), e.g. 4" },
       { "name": "updated_at",        "type": "TIMESTAMP","mode": "NULLABLE","description": "Last update time" }
