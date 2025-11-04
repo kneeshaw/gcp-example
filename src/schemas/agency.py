@@ -2,7 +2,7 @@
 Agency Table Schema
 ==================
 
-Schema for the sc_agency GTFS table.
+Schema for the stg_agency GTFS table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

@@ -2,7 +2,7 @@
 Fare Rules Table Schema
 ======================
 
-Schema for the sc_fare_rules GTFS Schedule table.
+Schema for the stg_fare_rules GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

@@ -49,13 +49,14 @@ def insert_batch(
     df_to_load = df.copy()
     
     # Set timestamps for any null values if columns exist in both DataFrame and target schema
+    
     current_time = pd.Timestamp.utcnow().floor("s")
     
-    if "created_at" in df_to_load.columns and "created_at" in target_columns:
-        df_to_load["created_at"] = df_to_load["created_at"].fillna(current_time)
-    
-    if "updated_at" in df_to_load.columns and "updated_at" in target_columns:
-        df_to_load["updated_at"] = df_to_load["updated_at"].fillna(current_time)
+    if "created_at" in target_columns:
+        df_to_load["created_at"] = current_time
+
+    if "updated_at" in target_columns:
+        df_to_load["updated_at"] = current_time
 
     extra_columns = set(df_to_load.columns) - set(target_columns)
     if extra_columns:

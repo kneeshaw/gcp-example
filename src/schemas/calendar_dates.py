@@ -2,7 +2,7 @@
 Calendar Dates Table Schema
 ==========================
 
-Schema for the sc_calendar_dates GTFS table.
+Schema for the stg_calendar_dates GTFS table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

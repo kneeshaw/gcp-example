@@ -2,7 +2,7 @@
 Stop Times Table Schema
 ======================
 
-Schema for the sc_stop_times GTFS Schedule table.
+Schema for the stg_stop_times GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

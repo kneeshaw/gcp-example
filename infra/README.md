@@ -83,7 +83,7 @@ Environment variables are provided via `dev.tfvars` (or another `*.tfvars` file)
 - `project_id`: GCP project to deploy into
 - `gcp_region`: e.g., `australia-southeast1`
 - `environment`: e.g., `dev`
-- `agency_prefix`: e.g., `akl`
+- `region_prefix`: e.g., `akl`
 - `bq_dataset`: BigQuery dataset id, e.g., `auckland_data_dev`
 - `headers`: per-dataset HTTP headers for source APIs
 - `datasets`: a map of datasets with:
@@ -163,7 +163,7 @@ Then point your `dev.tfvars` table to the generated `*.schema.json` under `infra
 
 1) Copy an existing env folder, e.g., `infra/agencies/auckland/dev` → `infra/agencies/<new-agency>/<new-env>`
 2) Update `<env>.tfvars`:
-   - `project_id`, `environment`, `agency_prefix`, optional bucket overrides
+   - `project_id`, `environment`, `region_prefix`, optional bucket overrides
    - datasets/functions as needed
 3) Run:
 

@@ -5,7 +5,7 @@
 --   - trip_updates_fact (realtime stop events)
 
 WITH sched AS (
-  SELECT * FROM `${project_id}.${dataset_id}.fct_trip_event_plan`
+  SELECT * FROM `${project_id}.${dataset_id}.fct_trip_plan`
 ), rt_raw AS (
   SELECT * FROM `${project_id}.${dataset_id}.fct_trip_update`
 ), rt_grouped AS (

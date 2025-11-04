@@ -2,7 +2,7 @@
 Feed Info Table Schema
 =====================
 
-Schema for the sc_feed_info GTFS Schedule table.
+Schema for the stg_feed_info GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

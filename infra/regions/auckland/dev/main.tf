@@ -44,7 +44,7 @@ module "src_artifact" {
 resource "google_storage_bucket" "data" {
   project  = var.project_id
   # Allow override; default includes project_id to minimize collision risk
-  name     = coalesce(var.data_bucket_name, lower(replace("${var.project_id}-${var.agency_prefix}-${var.environment}-data", "_", "-")))
+  name     = coalesce(var.data_bucket_name, lower(replace("${var.project_id}-${var.region_prefix}-${var.environment}-data", "_", "-")))
   location = local.bucket_location
   uniform_bucket_level_access = true
 }
@@ -58,13 +58,13 @@ resource "google_bigquery_dataset" "dataset" {
 
 # Service accounts
 resource "google_service_account" "functions" {
-  account_id   = "${replace(var.agency_prefix, "-", "")}-${var.environment}-functions"
-  display_name = "Functions SA (${var.agency_prefix}-${var.environment})"
+  account_id   = "${replace(var.region_prefix, "-", "")}-${var.environment}-functions"
+  display_name = "Functions SA (${var.region_prefix}-${var.environment})"
 }
 
 resource "google_service_account" "scheduler" {
-  account_id   = "${replace(var.agency_prefix, "-", "")}-${var.environment}-scheduler"
-  display_name = "Scheduler SA (${var.agency_prefix}-${var.environment})"
+  account_id   = "${replace(var.region_prefix, "-", "")}-${var.environment}-scheduler"
+  display_name = "Scheduler SA (${var.region_prefix}-${var.environment})"
 }
 
 # IAM for storage access (fetch/transform use this bucket)
@@ -122,7 +122,7 @@ module "functions" {
 
   project_id            = var.project_id
   region                = var.gcp_region
-  function_name         = lower(replace("${var.agency_prefix}-${each.value.ds_name}-${each.value.fn_name}-${var.environment}", "_", "-"))
+  function_name         = lower(replace("${var.region_prefix}-${each.value.ds_name}-${each.value.fn_name}-${var.environment}", "_", "-"))
   entry_point           = "main"
   runtime               = "python311"
   service_account_email = google_service_account.functions.email
@@ -169,9 +169,9 @@ module "enqueuer" {
 
   project_id                         = var.project_id
   region                             = var.gcp_region
-  function_name                      = lower(replace("${var.agency_prefix}-${each.key}-enqueuer-${var.environment}", "_", "-"))
+  function_name                      = lower(replace("${var.region_prefix}-${each.key}-enqueuer-${var.environment}", "_", "-"))
   queue_location                     = var.gcp_region
-  queue_name                         = lower(replace("${var.agency_prefix}-${each.key}-queue-${var.environment}", "_", "-"))
+  queue_name                         = lower(replace("${var.region_prefix}-${each.key}-queue-${var.environment}", "_", "-"))
   worker_url                         = try(module.functions["${each.key}/fetch"].uri, "")
   enqueuer_service_account_email     = google_service_account.functions.email
   scheduler_service_account_email    = google_service_account.scheduler.email
@@ -194,7 +194,7 @@ module "enqueuer_schedule" {
 
   project_id                      = var.project_id
   region                          = var.gcp_region
-  name                            = lower(replace("${var.agency_prefix}-${each.key}-enq-${var.environment}", "_", "-"))
+  name                            = lower(replace("${var.region_prefix}-${each.key}-enq-${var.environment}", "_", "-"))
   schedule                        = each.value.functions.enqueuer.trigger.cron
   time_zone                       = var.timezone
   target_uri                      = module.enqueuer[each.key].enqueuer_uri
@@ -211,7 +211,7 @@ module "functions_schedule" {
 
   project_id = var.project_id
   region     = var.gcp_region
-  name       = lower(replace("${var.agency_prefix}-${replace(each.key, "/", "-")}-${var.environment}", "_", "-"))
+  name       = lower(replace("${var.region_prefix}-${replace(each.key, "/", "-")}-${var.environment}", "_", "-"))
   schedule   = each.value.cfg.trigger.cron
   time_zone  = var.timezone
   target_uri = module.functions[each.key].uri
@@ -233,13 +233,25 @@ output "enqueuer_urls" { value = { for k, m in module.enqueuer : k => m.enqueuer
 # BigQuery tables
 locals {
   stg_models_dir = "${path.module}/../../../models/stg"
-  stg_table_files = fileset(local.stg_models_dir, "*.table.json")
-  table_defs = {
-    for f in local.stg_table_files : replace(basename(f), ".table.json", "") => {
+  dim_models_dir = "${path.module}/../../../models/dim"
+
+  stg_table_defs = {
+    for f in fileset(local.stg_models_dir, "*.table.json") : replace(basename(f), ".table.json", "") => {
       table_name        = replace(basename(f), ".table.json", "")
       table_config_file = "${local.stg_models_dir}/${f}"
     }
   }
+
+  dim_table_defs = {
+    for f in fileset(local.dim_models_dir, "*.table.json") : replace(basename(f), ".table.json", "") => {
+      table_name        = replace(basename(f), ".table.json", "")
+      table_config_file = "${local.dim_models_dir}/${f}"
+    }
+  }
+
+  # Merge to get all table definitions from stg and dim; if duplicate keys exist, dim overrides stg
+  # Also explicitly exclude dim_region from stg to avoid confusion while migrating
+  table_defs = merge({ for k, v in local.stg_table_defs : k => v if k != "dim_region" }, local.dim_table_defs)
 }
 
 module "bq_tables" {
@@ -255,6 +267,51 @@ module "bq_tables" {
   deletion_protection = false
 
   depends_on = [google_bigquery_dataset.dataset]
+}
+
+# Seed dim_region from environment variables (idempotent)
+resource "google_bigquery_job" "seed_dim_region" {
+  project  = var.project_id
+  location = var.gcp_region
+  job_id   = "seed-dim-region-${var.bq_dataset}-${random_id.dim_region_seed.hex}"
+
+  # ensure table exists first (tables are built from infra/models/stg/*.table.json)
+  depends_on = [module.bq_tables["dim_region"]]
+
+  query {
+    use_legacy_sql = false
+    query = <<-SQL
+      MERGE `${var.project_id}.${var.bq_dataset}.dim_region` T
+      USING (
+        SELECT
+          -- Ensure non-empty ID and sane defaults
+          UPPER(NULLIF("${var.region_prefix}", "")) AS region_id,
+          COALESCE(NULLIF("${coalesce(var.region_name, var.transit_authority)}", ""), UPPER(NULLIF("${var.region_prefix}", ""))) AS region_name,
+          COALESCE(NULLIF("${var.timezone}", ""), "UTC") AS timezone,
+          CAST(GREATEST(0, LEAST(23, ${var.service_boundary_hour})) AS INT64) AS svc_boundary_hour
+      ) S
+      ON T.region_id = S.region_id
+      WHEN MATCHED THEN
+        UPDATE SET
+          region_name = S.region_name,
+          timezone = S.timezone,
+          svc_boundary_hour = S.svc_boundary_hour,
+          updated_at = CURRENT_TIMESTAMP()
+      WHEN NOT MATCHED THEN
+        INSERT (region_id, region_name, timezone, svc_boundary_hour, updated_at)
+        VALUES (S.region_id, S.region_name, S.timezone, S.svc_boundary_hour, CURRENT_TIMESTAMP())
+    SQL
+  }
+}
+
+# Stable random suffix to avoid BigQuery job-id collisions across stacks/runs
+resource "random_id" "dim_region_seed" {
+  byte_length = 2 # 4 hex chars
+  keepers = {
+    project   = var.project_id
+    dataset   = var.bq_dataset
+    region    = var.gcp_region
+  }
 }
 
 # BigQuery views (build directly from SQL files under infra/models/*)
@@ -273,10 +330,16 @@ locals {
       description = "View from ${f}"
     }
   }
+
+  # Ensure dependency order for views that reference others
+  base_view_names      = ["fct_trip_update", "fct_vehicle_position", "fct_trip_plan"]
+  base_folder_views    = { for k, v in local.folder_views : k => v if contains(local.base_view_names, k) }
+  derived_folder_views = { for k, v in local.folder_views : k => v if !contains(local.base_view_names, k) }
 }
 
-module "bq_views" {
-  for_each = local.folder_views
+# Create base views first
+module "bq_views_base" {
+  for_each = local.base_folder_views
   source   = "../../../modules/bigquery_view"
 
   project_id  = var.project_id
@@ -287,3 +350,18 @@ module "bq_views" {
 
   depends_on = [google_bigquery_dataset.dataset, module.bq_tables]
 }
+
+# Then create derived views that depend on base views
+module "bq_views" {
+  for_each = local.derived_folder_views
+  source   = "../../../modules/bigquery_view"
+
+  project_id  = var.project_id
+  dataset_id  = var.bq_dataset
+  view_id     = lower(replace(each.key, "-", "_"))
+  sql_file    = each.value.sql_file
+  description = each.value.description
+
+  depends_on = [google_bigquery_dataset.dataset, module.bq_tables, module.bq_views_base]
+}
+

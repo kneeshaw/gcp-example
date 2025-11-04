@@ -410,7 +410,7 @@ def add_missing_schema_fields(df: pd.DataFrame, schema_class) -> pd.DataFrame:
             logger.debug(f"Added missing field '{field_name}' with default value: {default_value}")
 
     if added_fields:
-        logger.info(f"Added {len(added_fields)} missing schema fields: {added_fields} for schema {schema_class.__name__}")
+        logger.debug(f"Added {len(added_fields)} missing schema fields: {added_fields} for schema {schema_class.__name__}")
     else:
         logger.debug("No missing schema fields found")
 

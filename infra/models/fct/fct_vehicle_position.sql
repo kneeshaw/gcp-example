@@ -49,8 +49,15 @@ WITH base AS (
       ELSE NULL
     END AS route_mode
   FROM `${project_id}.${dataset_id}.stg_vehicle_positions` v
-  LEFT JOIN `${project_id}.${dataset_id}.sc_routes` r
+  LEFT JOIN `${project_id}.${dataset_id}.stg_routes` r
     ON SAFE_CAST(r.route_id AS STRING) = CAST(v.route_id AS STRING)
+)
+,
+-- Single-row region config (dataset is per-region)
+region_cfg AS (
+  SELECT region_id, region_name, timezone, svc_boundary_hour
+  FROM `${project_id}.${dataset_id}.dim_region`
+  LIMIT 1
 )
 SELECT
   -- Pass-through all existing fields
@@ -72,5 +79,17 @@ SELECT
   geog,
   moving_flag,
   route_type,
-  route_mode
+  route_mode,
+
+  -- Localized time fields using region timezone and service-day boundary
+  -- Note: DATETIME handles DST transitions correctly
+  DATETIME(timestamp, region_cfg.timezone) AS datetime_local,
+  DATE(DATETIME(timestamp, region_cfg.timezone)) AS date_local,
+  DATETIME_TRUNC(DATETIME(timestamp, region_cfg.timezone), MINUTE) AS minute_dt_local,
+  DATETIME_TRUNC(DATETIME(timestamp, region_cfg.timezone), HOUR) AS hour_dt_local,
+  -- Service day: roll back by boundary hours, then take the date
+  DATE(DATETIME_SUB(DATETIME(timestamp, region_cfg.timezone), INTERVAL region_cfg.svc_boundary_hour HOUR)) AS service_day_local,
+  EXTRACT(DAYOFWEEK FROM DATETIME(timestamp, region_cfg.timezone)) AS day_of_week_num_local,
+  FORMAT_DATETIME('%A', DATETIME(timestamp, region_cfg.timezone)) AS day_of_week_name_local
 FROM base
+CROSS JOIN region_cfg

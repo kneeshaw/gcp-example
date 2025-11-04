@@ -19,7 +19,7 @@ import os
 from google.cloud import bigquery
 
 from common.logging_utils import logger
-from src.schemas.common.schema_registry import get_schema_class
+from schemas.common.schema_registry import get_schema_class
 from schemas.common.schema_utils import clean_and_validate_dataframe
 from big_query.batch_insert import insert_batch
 
@@ -80,7 +80,7 @@ def get_applicable_feed_hash(client, project_id: str, dataset: str, service_date
     logger.info(f"Finding feed for service date: {service_date}")
 
     query = f"""
-    SELECT feed_hash FROM `{project_id}.{dataset}.sc_feed_info`
+    SELECT feed_hash FROM `{project_id}.{dataset}.stg_feed_info`
     WHERE feed_start_date <= {service_date}
     AND feed_end_date >= {service_date}
     LIMIT 1
@@ -113,7 +113,7 @@ def get_active_services(client, project_id: str, dataset: str, feed_hash: str, s
     try:
         # Get regular services
         calendar_query = f"""
-        SELECT service_id FROM `{project_id}.{dataset}.sc_calendar`
+        SELECT service_id FROM `{project_id}.{dataset}.stg_calendar`
         WHERE feed_hash = '{feed_hash}'
         AND start_date <= {service_date} AND end_date >= {service_date}
         AND {day_name} = 1
@@ -123,7 +123,7 @@ def get_active_services(client, project_id: str, dataset: str, feed_hash: str, s
 
         # Get added services (exception_type = 1)
         added_query = f"""
-        SELECT service_id FROM `{project_id}.{dataset}.sc_calendar_dates`
+        SELECT service_id FROM `{project_id}.{dataset}.stg_calendar_dates`
         WHERE feed_hash = '{feed_hash}'
         AND date = {service_date} AND exception_type = 1
         """
@@ -132,7 +132,7 @@ def get_active_services(client, project_id: str, dataset: str, feed_hash: str, s
 
         # Get removed services (exception_type = 2)
         removed_query = f"""
-        SELECT service_id FROM `{project_id}.{dataset}.sc_calendar_dates`
+        SELECT service_id FROM `{project_id}.{dataset}.stg_calendar_dates`
         WHERE feed_hash = '{feed_hash}'
         AND date = {service_date} AND exception_type = 2
         """
@@ -165,8 +165,8 @@ def get_trips(client, project_id: str, dataset: str, feed_hash: str, active_serv
         SELECT
             t.service_id, t.route_id, r.route_short_name, r.route_type,
             t.trip_id, t.trip_headsign, t.direction_id, t.shape_id
-        FROM `{project_id}.{dataset}.sc_trips` t
-        LEFT JOIN `{project_id}.{dataset}.sc_routes` r
+        FROM `{project_id}.{dataset}.stg_trips` t
+        LEFT JOIN `{project_id}.{dataset}.stg_routes` r
         ON t.route_id = r.route_id AND t.feed_hash = r.feed_hash
         WHERE t.feed_hash = '{feed_hash}'
         """
@@ -199,8 +199,8 @@ def get_stop_times_and_convert(client, project_id: str, dataset: str, feed_hash:
             st.trip_id, st.stop_id, st.stop_sequence, s.stop_code, s.stop_name,
             st.stop_headsign, st.arrival_time, st.departure_time,
             s.stop_lat, s.stop_lon, st.shape_dist_traveled
-        FROM `{project_id}.{dataset}.sc_stop_times` st
-        LEFT JOIN `{project_id}.{dataset}.sc_stops` s
+        FROM `{project_id}.{dataset}.stg_stop_times` st
+        LEFT JOIN `{project_id}.{dataset}.stg_stops` s
         ON st.stop_id = s.stop_id AND st.feed_hash = s.feed_hash
         WHERE st.feed_hash = '{feed_hash}'
         """

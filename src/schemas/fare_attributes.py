@@ -2,7 +2,7 @@
 Fare Attributes Table Schema
 ===========================
 
-Schema for the sc_fare_attributes GTFS Schedule table.
+Schema for the stg_fare_attributes GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

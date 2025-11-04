@@ -2,7 +2,7 @@
 Transfers Table Schema
 =====================
 
-Schema for the sc_transfers GTFS Schedule table.
+Schema for the stg_transfers GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

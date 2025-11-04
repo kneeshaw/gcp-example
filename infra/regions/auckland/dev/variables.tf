@@ -1,7 +1,7 @@
 variable "project_id" { type = string }
 variable "gcp_region" { type = string }
 variable "environment" { type = string }
-variable "agency_prefix" { type = string }
+variable "region_prefix" { type = string }
 variable "bq_dataset" { type = string }
 variable "headers" {
 	type    = map(string)
@@ -13,6 +13,17 @@ variable "datasets" { type = any }
 variable "timezone" {
 	type    = string
 	default = "UTC"
+}
+variable "transit_authority" {
+  type = string
+}
+variable "service_boundary_hour" {
+  type = number
+}
+variable "region_name" {
+	description = "Optional display name for the region; if unset, transit_authority will be used."
+	type        = string
+	default     = null
 }
 variable "bucket_location" {
 	type    = string

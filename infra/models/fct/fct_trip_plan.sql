@@ -33,5 +33,5 @@ SELECT
   -- Local time features (parameterized timezone)
   EXTRACT(HOUR FROM DATETIME(COALESCE(s.scheduled_arrival, s.scheduled_departure), "${timezone}")) AS hour_of_day,
   EXTRACT(DAYOFWEEK FROM DATE(s.service_date_dt)) AS day_of_week
-FROM `${project_id}.${dataset_id}.ds_daily_schedule` s
+FROM `${project_id}.${dataset_id}.stg_daily_schedule` s
 ;

@@ -2,7 +2,7 @@
 Routes Table Schema
 ==================
 
-Schema for the sc_routes GTFS Schedule table.
+Schema for the stg_routes GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

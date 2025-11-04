@@ -2,7 +2,7 @@
 Frequencies Table Schema
 =======================
 
-Schema for the sc_frequencies GTFS Schedule table.
+Schema for the stg_frequencies GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 

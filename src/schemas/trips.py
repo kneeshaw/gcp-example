@@ -2,7 +2,7 @@
 Trips Table Schema
 =================
 
-Schema for the sc_trips GTFS Schedule table.
+Schema for the stg_trips GTFS Schedule table.
 Table-specific DataFrameModel definition with proper validation.
 """
 
