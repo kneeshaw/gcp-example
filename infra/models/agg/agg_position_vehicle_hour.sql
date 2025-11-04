@@ -16,6 +16,7 @@ vehicle_hour_base AS (
     p.is_unmonitored_movement,
     p.position_delta_m,
     p.route_id,
+    p.route_mode,
     p.timestamp_utc,
     -- Rank positions within the hour to find the last one
     ROW_NUMBER() OVER(PARTITION BY p.vehicle_id, p.service_date, p.hour_local ORDER BY p.timestamp_utc DESC) as rn
@@ -26,9 +27,8 @@ SELECT
   v.service_date,
   v.hour_local,
   v.vehicle_id,
-  -- Get the last known route_id for the vehicle in that hour
-  MAX(IF(v.rn = 1, v.route_id, NULL)) as last_route_id,
-
+  v.route_mode,
+  
   -- Key Performance Indicators
   AVG(v.speed_kmh) AS avg_speed_kmh,
   COUNT(v.vehicle_id) AS position_count,
@@ -42,6 +42,6 @@ SELECT
 FROM
   vehicle_hour_base AS v
 GROUP BY
-  1, 2, 3
+  1, 2, 3, 4
 ORDER BY
   service_date, hour_local, vehicle_id;

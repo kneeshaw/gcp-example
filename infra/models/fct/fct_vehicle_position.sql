@@ -62,6 +62,17 @@ localized AS (
   FROM base_with_deltas
   CROSS JOIN region_cfg
 )
+,
+-- Fill in NULL route_mode values. A vehicle's mode is constant for a given day.
+-- We find the mode associated with the vehicle for the day and apply it to all its positions.
+mode_filled AS (
+  SELECT
+    *,
+    -- Get the single non-null route_mode for the vehicle/day combination.
+    -- This assumes a vehicle operates as a single mode within a service day.
+    MAX(route_mode) OVER (PARTITION BY vehicle_id, service_date) AS filled_route_mode
+  FROM localized
+)
 SELECT
   -- Time
   timestamp_utc,
@@ -81,7 +92,7 @@ SELECT
   longitude,
   geog,
   route_type,
-  route_mode,
+  filled_route_mode AS route_mode,
 
   -- Gap and movement analysis fields
   update_interval_seconds,
@@ -91,4 +102,4 @@ SELECT
   (
     update_interval_seconds > 120 AND position_delta_m > 50
   ) AS is_unmonitored_movement
-FROM localized
+FROM mode_filled

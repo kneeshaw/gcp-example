@@ -8,8 +8,7 @@
 SELECT
   service_date,
   vehicle_id,
-  -- Take the last known route_id for the day as a representative value
-  MAX(last_route_id) as last_route_id,
+  route_mode,
 
   -- Weighted average for speed, using position_count as the weight.
   SAFE_DIVIDE(
@@ -33,6 +32,6 @@ SELECT
 FROM
   `${project_id}.${dataset_id}.agg_position_vehicle_hour`
 GROUP BY
-  1, 2
+  1, 2, 3
 ORDER BY
   service_date, vehicle_id;
