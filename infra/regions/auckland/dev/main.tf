@@ -334,8 +334,13 @@ locals {
 
   # Ensure dependency order for views that reference others
   base_view_names      = ["fct_trip_update", "fct_vehicle_position", "fct_trip_plan"]
+  hourly_agg_view_names = [for f in local.view_files : replace(basename(f), ".sql", "") if endswith(replace(basename(f), ".sql", ""), "_hour")]
+  daily_agg_view_names  = [for f in local.view_files : replace(basename(f), ".sql", "") if endswith(replace(basename(f), ".sql", ""), "_day")]
+
   base_folder_views    = { for k, v in local.folder_views : k => v if contains(local.base_view_names, k) }
-  derived_folder_views = { for k, v in local.folder_views : k => v if !contains(local.base_view_names, k) }
+  hourly_agg_folder_views = { for k, v in local.folder_views : k => v if contains(local.hourly_agg_view_names, k) }
+  daily_agg_folder_views  = { for k, v in local.folder_views : k => v if contains(local.daily_agg_view_names, k) }
+  derived_folder_views = { for k, v in local.folder_views : k => v if !contains(local.base_view_names, k) && !contains(local.hourly_agg_view_names, k) && !contains(local.daily_agg_view_names, k) }
 }
 
 # Create base views first
@@ -352,7 +357,35 @@ module "bq_views_base" {
   depends_on = [google_bigquery_dataset.dataset, module.bq_tables]
 }
 
-# Then create derived views that depend on base views
+# Then create hourly aggregation views that depend on base views
+module "bq_views_hourly_agg" {
+  for_each = local.hourly_agg_folder_views
+  source   = "../../../modules/bigquery_view"
+
+  project_id  = var.project_id
+  dataset_id  = var.bq_dataset
+  view_id     = lower(replace(each.key, "-", "_"))
+  sql_file    = each.value.sql_file
+  description = each.value.description
+
+  depends_on = [module.bq_views_base]
+}
+
+# Then create daily aggregation views that depend on hourly aggregation views
+module "bq_views_daily_agg" {
+  for_each = local.daily_agg_folder_views
+  source   = "../../../modules/bigquery_view"
+
+  project_id  = var.project_id
+  dataset_id  = var.bq_dataset
+  view_id     = lower(replace(each.key, "-", "_"))
+  sql_file    = each.value.sql_file
+  description = each.value.description
+
+  depends_on = [module.bq_views_hourly_agg]
+}
+
+# Then create derived views that depend on all other views
 module "bq_views" {
   for_each = local.derived_folder_views
   source   = "../../../modules/bigquery_view"
@@ -363,5 +396,5 @@ module "bq_views" {
   sql_file    = each.value.sql_file
   description = each.value.description
 
-  depends_on = [google_bigquery_dataset.dataset, module.bq_tables, module.bq_views_base]
+  depends_on = [module.bq_views_daily_agg]
 }

@@ -1,38 +1,34 @@
 -- infra/models/agg/agg_position_vehicle_day.sql
 --
--- This model rolls up the hourly vehicle-level position data to a daily grain.
--- It provides a daily summary of activity for each vehicle.
+-- This model aggregates unmonitored vehicle positions by vehicle and day.
+-- Unmonitored positions are defined as vehicle positions that are not
+-- associated with a scheduled trip.
 --
--- Grain: One row per vehicle_id, service_date.
+-- Grain: One row per vehicle_id, route_mode, and service_date.
 --
+WITH
+  base AS (
+    SELECT
+      vp.service_date,
+      vp.vehicle_id,
+      vp.route_mode,
+      vp.update_interval_seconds,
+      vp.position_delta_m
+    FROM
+      `${project_id}.${dataset_id}.fct_vehicle_position` AS vp
+    WHERE
+      vp.is_unmonitored_movement
+  )
 SELECT
-  service_date,
-  EXTRACT(DAYOFWEEK FROM service_date) AS dow_local,
-  vehicle_id,
-  route_mode,
-
-  -- Weighted average for speed, using position_count as the weight.
-  SAFE_DIVIDE(
-    SUM(avg_speed_kmh * position_count),
-    SUM(position_count)
-  ) AS avg_speed_kmh,
-
-  -- Weighted average for update interval.
-  SAFE_DIVIDE(
-    SUM(avg_update_interval_seconds * position_count),
-    SUM(position_count)
-  ) AS avg_update_interval_seconds,
-
-  SUM(position_count) AS position_count,
-
-  -- Sum of unmonitored movement stats
-  SUM(unmonitored_movement_count) AS unmonitored_movement_count,
-  SUM(unmonitored_movement_seconds) AS unmonitored_movement_seconds,
-  SUM(unmonitored_movement_distance_m) AS unmonitored_movement_distance_m
-
+  b.service_date,
+  b.vehicle_id,
+  b.route_mode,
+  COUNT(*) AS position_count,
+  SUM(b.update_interval_seconds) AS unmonitored_duration_seconds,
+  SUM(b.position_delta_m) AS unmonitored_distance_m
 FROM
-  `${project_id}.${dataset_id}.agg_position_vehicle_hour`
+  base AS b
 GROUP BY
-  1, 2, 3, 4
+  1, 2, 3
 ORDER BY
-  service_date, vehicle_id;
+  1, 2, 3;

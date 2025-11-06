@@ -20,10 +20,13 @@ WITH base AS (
 
     -- Route mode/type from dimension table
     r.route_type,
-    r.route_mode
+    r.route_mode,
+    t.direction_id
   FROM `${project_id}.${dataset_id}.stg_vehicle_positions` v
   LEFT JOIN `${project_id}.${dataset_id}.dim_route` r
     ON r.route_id = CAST(v.route_id AS STRING)
+  LEFT JOIN `${project_id}.${dataset_id}.stg_trips` t
+    ON t.trip_id = CAST(v.trip_id AS STRING)
 )
 ,
 -- Add interval and delta calculations
@@ -85,6 +88,7 @@ SELECT
   vehicle_id,
   trip_id,
   route_id,
+  direction_id,
   speed_kmh,
   bearing_deg,
   occupancy_status,

@@ -54,9 +54,6 @@ resource "google_bigquery_table" "view" {
   }
 
   deletion_protection = false
-
-  # Note: View will need manual recreation when SQL content changes
-  # Consider adding a content hash to view_id or description for automatic updates
 }
 
 output "view_id" {
