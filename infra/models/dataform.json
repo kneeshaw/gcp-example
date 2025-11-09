@@ -4,5 +4,5 @@
   "warehouse": "bigquery",
   "defaultDatabase": "gcp-example-420601",
   "defaultLocation": "australia-southeast1",
-  "sourcePaths": ["."]
+  "sourcePaths": ["fct", "agg", "stg", "dim"]
 }
