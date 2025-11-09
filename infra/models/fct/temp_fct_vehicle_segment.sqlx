@@ -1,0 +1,150 @@
+config {
+  type: "view",
+  schema: ${vars.fct_schema},
+  tags: ["fct", "daily"]
+}
+
+-- Segment-level fact derived from temp_fct_vehicle_position
+-- Keeps all segments; sets QA flags but does not filter them out.
+
+WITH ordered AS (
+  SELECT
+    p.vehicle_id,
+    p.route_id,
+    p.trip_id,
+    p.direction_id,
+    p.route_mode,
+    p.route_type,
+    p.occupancy_status,
+
+    -- UTC times for segment bounds
+    p.timestamp_utc AS start_ts_utc,
+    LEAD(p.timestamp_utc) OVER (PARTITION BY p.vehicle_id ORDER BY p.timestamp_utc) AS end_ts_utc,
+
+    -- Local time (DATETIME) reused from points
+    p.datetime_local AS start_dt_local,
+    LEAD(p.datetime_local) OVER (PARTITION BY p.vehicle_id ORDER BY p.timestamp_utc) AS end_dt_local,
+
+    -- Service date/hour/day-of-week from the start point
+    p.service_date                   AS start_service_date,
+    p.hour                           AS start_hour,
+    p.day_of_week                    AS start_day_of_week,
+
+    -- Geometry / coords
+    p.latitude  AS start_lat,
+    p.longitude AS start_lon,
+    LEAD(p.latitude)  OVER (PARTITION BY p.vehicle_id ORDER BY p.timestamp_utc) AS end_lat,
+    LEAD(p.longitude) OVER (PARTITION BY p.vehicle_id ORDER BY p.timestamp_utc) AS end_lon,
+    p.geog      AS geog_start,
+    LEAD(p.geog) OVER (PARTITION BY p.vehicle_id ORDER BY p.timestamp_utc)    AS geog_end,
+
+    -- H3 at finest grain
+    p.h3_10     AS start_h3_10,
+    LEAD(p.h3_10) OVER (PARTITION BY p.vehicle_id ORDER BY p.timestamp_utc)    AS end_h3_10
+  FROM ${ref("temp_fct_vehicle_position")} p
+),
+segments AS (
+  SELECT
+    *,
+    -- time delta in seconds (we filter NULL end_ts_utc next)
+    TIMESTAMP_DIFF(end_ts_utc, start_ts_utc, SECOND) AS delta_seconds
+  FROM ordered
+  WHERE end_ts_utc IS NOT NULL
+),
+physics AS (
+  SELECT
+    vehicle_id, route_id, trip_id, direction_id, route_mode, route_type, occupancy_status,
+
+    -- UTC & local times carried forward
+    start_ts_utc, end_ts_utc,
+    start_dt_local, end_dt_local,
+    start_service_date AS service_date,
+    start_hour         AS hour,
+    start_day_of_week  AS day_of_week,
+
+    -- geometry / indices
+    start_lat, start_lon, geog_start,
+    end_lat,   end_lon,   geog_end,
+    start_h3_10, end_h3_10,
+
+    delta_seconds,
+
+    -- distance (m) & speed (km/h)
+    CASE
+      WHEN geog_start IS NULL OR geog_end IS NULL THEN NULL
+      ELSE ST_DISTANCE(geog_start, geog_end)
+    END AS delta_distance_m,
+
+    CASE
+      WHEN delta_seconds > 0 AND geog_start IS NOT NULL AND geog_end IS NOT NULL
+        THEN (ST_DISTANCE(geog_start, geog_end) / delta_seconds) * 3.6
+      ELSE NULL
+    END AS speed_kmh,
+
+    -- gap & QA flags (kept, not filtered)
+    delta_seconds > 180 AS is_gap
+  FROM segments
+),
+final AS (
+  SELECT
+    *,
+    -- Unmonitored movement: >30 m during a gap (NULL-safe)
+    CASE
+      WHEN is_gap AND delta_distance_m IS NOT NULL AND delta_distance_m > 30.0 THEN TRUE
+      ELSE FALSE
+    END AS is_unmonitored_movement,
+
+    -- Optional QA flags that can be used by "clean" views
+    (delta_seconds IS NULL OR delta_seconds <= 0)      AS flag_nonpositive_gap,
+    (speed_kmh IS NOT NULL AND speed_kmh > 140)        AS flag_implausible_speed,
+
+    -- Stable segment id
+    CONCAT(vehicle_id, '_', FORMAT_TIMESTAMP('%Y%m%d%H%M%S', start_ts_utc)) AS segment_id
+  FROM physics
+)
+
+SELECT
+  -- Time (expose both UTC and local)
+  start_ts_utc           AS segment_start_ts_utc,
+  end_ts_utc             AS segment_end_ts_utc,
+  start_dt_local         AS segment_start_dt_local,
+  end_dt_local           AS segment_end_dt_local,
+  service_date,
+  hour,
+  day_of_week,
+
+  -- Identifiers
+  segment_id,
+  vehicle_id,
+  trip_id,
+  route_id,
+  direction_id,
+
+  -- Route attributes
+  route_type,
+  route_mode,
+
+  -- Spatial (start/end)
+  start_lat,
+  start_lon,
+  geog_start,
+  end_lat,
+  end_lon,
+  geog_end,
+  start_h3_10,
+  end_h3_10,
+
+  -- Movement measures
+  delta_seconds,
+  delta_distance_m,
+  speed_kmh,
+  is_gap,
+  is_unmonitored_movement,
+
+  -- QA flags (kept)
+  flag_nonpositive_gap,
+  flag_implausible_speed,
+
+  -- Observational
+  occupancy_status
+FROM final;

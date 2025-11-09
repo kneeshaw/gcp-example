@@ -221,6 +221,44 @@ module "functions_schedule" {
   depends_on = [module.functions]
 }
 
+# --- Dataform Configuration ---
+module "dataform" {
+  source = "../../../modules/dataform"
+
+  project_id             = var.project_id
+  region                 = var.gcp_region
+  dataform_repository_id = "${var.region_prefix}-${var.environment}-dataform-repo"
+  github_repo_url        = "https://github.com/kneeshaw/gcp-example"
+
+  # !! ACTION REQUIRED !!
+  # Replace with the full resource name of your GitHub PAT secret version.
+  dataform_github_token_secret_version = "projects/724115329223/secrets/dataform-github-pat/versions/1"
+
+  # Pass schema names and other variables into Dataform
+  compilation_vars = {
+    stg_schema = "gcp_example_dev"
+    fct_schema = "gcp_example_dev"
+    agg_schema = "gcp_example_dev"
+    env        = "dev"
+  }
+
+  # Define the execution schedules and the models they should run
+  workflows = {
+    "daily-facts" = {
+      cron_schedule = "0 2 * * *"
+      time_zone     = "Pacific/Auckland"
+      included_tags = ["fct", "daily"]
+    },
+    "hourly-aggs" = {
+      cron_schedule = "0 * * * *"
+      time_zone     = "Pacific/Auckland"
+      included_tags = ["agg", "hourly"]
+    }
+  }
+
+  depends_on = [module.services]
+}
+
 output "data_bucket" { value = google_storage_bucket.data.name }
 output "source_bucket" { value = module.src_artifact.bucket }
 output "source_object" { value = module.src_artifact.object }
@@ -333,7 +371,7 @@ locals {
   }
 
   # Ensure dependency order for views that reference others
-  base_view_names      = ["fct_trip_update", "fct_vehicle_position", "fct_trip_plan"]
+  base_view_names      = ["fct_trip_update", "fct_vehicle_position", "fct_trip_plan", "temp_fct_vehicle_position", "temp_fct_vehicle_segment"]
   hourly_agg_view_names = [for f in local.view_files : replace(basename(f), ".sql", "") if endswith(replace(basename(f), ".sql", ""), "_hour")]
   daily_agg_view_names  = [for f in local.view_files : replace(basename(f), ".sql", "") if endswith(replace(basename(f), ".sql", ""), "_day")]
 

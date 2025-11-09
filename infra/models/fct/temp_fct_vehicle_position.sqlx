@@ -1,0 +1,106 @@
+config {
+  type: "view",
+  schema: ${vars.fct_schema},
+  tags: ["fct", "daily"]
+}
+
+WITH region_cfg AS (
+  SELECT region_prefix, region_name, timezone, svc_boundary_hour
+  FROM ${ref("dim_region")}
+  LIMIT 1
+),
+base AS (
+  SELECT
+    -- Localised datetime once
+    DATETIME(vp.timestamp, region_cfg.timezone) AS datetime_local,
+
+    -- Service date (shifted by service boundary)
+    DATE(
+      DATETIME_SUB(DATETIME(vp.timestamp, region_cfg.timezone),
+                   INTERVAL region_cfg.svc_boundary_hour HOUR)
+    ) AS service_date,
+
+    -- Raw + IDs
+    vp.timestamp AS timestamp_utc,
+    vp.vehicle_id,
+    vp.route_id,
+    vp.trip_id,
+    vp.direction_id,
+
+    -- Measures & obs
+    SAFE_CAST(vp.speed AS FLOAT64)   AS speed_kmh,
+    SAFE_CAST(vp.bearing AS FLOAT64) AS bearing_deg,
+    vp.occupancy_status,
+
+    -- Coords / geog
+    vp.latitude,
+    vp.longitude,
+    IF(vp.latitude IS NULL OR vp.longitude IS NULL,
+       NULL,
+       ST_GEOGPOINT(vp.longitude, vp.latitude)) AS geog,
+
+    -- Route attributes from dimension
+    r.route_mode AS route_mode_raw,
+    r.route_type AS route_type_raw,
+
+    -- Region config
+    region_cfg.svc_boundary_hour
+  FROM ${ref("stg_vehicle_positions")} vp
+  LEFT JOIN ${ref("dim_route")} r
+    ON r.route_id = CAST(vp.route_id AS STRING)
+  CROSS JOIN region_cfg
+),
+h3_attributed AS (
+  SELECT
+    base.*,
+    CASE
+      WHEN geog IS NULL THEN NULL
+      ELSE TO_JSON_STRING(
+        bigfunctions.australia_southeast1.h3(
+        "latLngToCell",
+          JSON_ARRAY(latitude, longitude, 10)
+        )
+      )
+    END AS h3_10
+  FROM base
+),
+mode_filled AS (
+  SELECT
+    *,
+    LAST_VALUE(route_mode_raw IGNORE NULLS)
+      OVER (
+        PARTITION BY vehicle_id, service_date
+        ORDER BY timestamp_utc
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      ) AS route_mode
+  FROM h3_attributed
+)
+SELECT
+  -- Time (both local and derived)
+  timestamp_utc,
+  datetime_local,
+  service_date,
+  EXTRACT(HOUR FROM datetime_local)      AS hour,
+  EXTRACT(DAYOFWEEK FROM datetime_local) AS day_of_week,
+
+  -- Identifiers
+  vehicle_id,
+  trip_id,
+  route_id,
+  direction_id,
+
+  -- Measures / obs
+  speed_kmh,
+  bearing_deg,
+  occupancy_status,
+
+  -- Route attributes
+  route_type_raw AS route_type,
+  route_mode,
+
+  -- Spatial
+  latitude,
+  longitude,
+  geog,
+  h3_10
+FROM mode_filled;
