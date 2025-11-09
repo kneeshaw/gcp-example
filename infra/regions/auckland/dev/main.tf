@@ -230,15 +230,14 @@ module "dataform" {
   dataform_repository_id = "${var.region_prefix}-${var.environment}-dataform-repo"
   github_repo_url        = "https://github.com/kneeshaw/gcp-example"
 
-  # !! ACTION REQUIRED !!
   # Replace with the full resource name of your GitHub PAT secret version.
   dataform_github_token_secret_version = "projects/724115329223/secrets/dataform-github-pat/versions/1"
 
   # Pass schema names and other variables into Dataform
   compilation_vars = {
-    stg_schema = "gcp_example_dev"
-    fct_schema = "gcp_example_dev"
-    agg_schema = "gcp_example_dev"
+    stg_schema = "auckland_data_dev"
+    fct_schema = "auckland_data_dev"
+    agg_schema = "auckland_data_dev"
     env        = "dev"
   }
 
