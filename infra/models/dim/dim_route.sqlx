@@ -1,0 +1,8 @@
+config {
+  type: "table",
+  schema: ${vars.fct_schema},
+  bigquery: {
+    table: "dim_route"  // References the existing external table
+  },
+  tags: ["dim"]
+}
