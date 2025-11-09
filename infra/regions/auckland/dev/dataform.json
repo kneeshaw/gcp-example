@@ -1,6 +1,6 @@
 {
-  "defaultSchema": "gcp_example_dev",
-  "assertionSchema": "gcp_example_dev_assertions",
+  "defaultSchema": "auckland_data_dev",
+  "assertionSchema": "auckland_data_dev_assertions",
   "warehouse": "bigquery",
   "defaultDatabase": "gcp-example-420601",
   "defaultLocation": "australia-southeast1",
