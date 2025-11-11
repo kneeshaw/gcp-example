@@ -1,0 +1,8 @@
+config {
+  type: "table",
+  schema: ${vars.stg_schema},
+  bigquery: {
+    table: "stg_routes"
+  },
+  tags: ["stg", "external"]
+}

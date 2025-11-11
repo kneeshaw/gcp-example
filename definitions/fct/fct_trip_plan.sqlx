@@ -1,0 +1,45 @@
+config {
+  type: "view",
+  schema: ${vars.fct_schema},
+  tags: ["fct"]
+}
+
+WITH region_cfg AS (
+  SELECT timezone
+  FROM ${ref("dim_region")}
+  LIMIT 1
+)
+SELECT
+  -- Service context
+  s.service_date_dt,
+  s.service_date,
+  s.feed_hash,
+
+  -- Trip/route/stop keys and attributes
+  s.route_id,
+  s.trip_id,
+  s.stop_id,
+  s.stop_sequence,
+  s.stop_name,
+  s.route_short_name,
+  s.direction_id,
+  s.trip_headsign,
+  s.stop_headsign,
+  s.shape_id,
+  s.shape_dist_traveled,
+
+  -- Scheduled times (UTC)
+  s.scheduled_arrival,
+  s.scheduled_departure,
+  s.scheduled_arrival_s,
+  s.scheduled_departure_s,
+
+  -- Chosen event timestamp (UTC) for bucketing and joins
+  COALESCE(s.scheduled_arrival, s.scheduled_departure) AS event_ts_utc,
+
+  -- Local time features (region timezone)
+  EXTRACT(HOUR FROM DATETIME(COALESCE(s.scheduled_arrival, s.scheduled_departure), region_cfg.timezone)) AS hour_of_day,
+  EXTRACT(DAYOFWEEK FROM DATE(s.service_date_dt)) AS day_of_week
+FROM ${ref("stg_daily_schedule")} s
+CROSS JOIN region_cfg
+;

@@ -221,43 +221,6 @@ module "functions_schedule" {
   depends_on = [module.functions]
 }
 
-# --- Dataform Configuration ---
-module "dataform" {
-  source = "../../../modules/dataform"
-
-  project_id             = var.project_id
-  region                 = var.gcp_region
-  dataform_repository_id = "${var.region_prefix}-${var.environment}-dataform-repo"
-  github_repo_url        = "https://github.com/kneeshaw/gcp-example"
-
-  # Replace with the full resource name of your GitHub PAT secret version.
-  dataform_github_token_secret_version = "projects/724115329223/secrets/dataform-github-pat/versions/1"
-
-  # Pass schema names and other variables into Dataform
-  compilation_vars = {
-    stg_schema = "auckland_data_dev"
-    fct_schema = "auckland_data_dev"
-    agg_schema = "auckland_data_dev"
-    env        = "dev"
-  }
-
-  # Define the execution schedules and the models they should run
-  workflows = {
-    "daily-facts" = {
-      cron_schedule = "0 2 * * *"
-      time_zone     = "Pacific/Auckland"
-      included_tags = ["fct", "daily"]
-    },
-    "hourly-aggs" = {
-      cron_schedule = "0 * * * *"
-      time_zone     = "Pacific/Auckland"
-      included_tags = ["agg", "hourly"]
-    }
-  }
-
-  depends_on = [module.services]
-}
-
 output "data_bucket" { value = google_storage_bucket.data.name }
 output "source_bucket" { value = module.src_artifact.bucket }
 output "source_object" { value = module.src_artifact.object }
@@ -269,30 +232,23 @@ output "enqueuer_urls" { value = { for k, m in module.enqueuer : k => m.enqueuer
 
 # BigQuery tables
 locals {
-  stg_models_dir = "${path.module}/../../../models/stg"
-  dim_models_dir = "${path.module}/../../../models/dim"
-
   stg_table_defs = {
-    for f in fileset(local.stg_models_dir, "*.table.json") : replace(basename(f), ".table.json", "") => {
+    for f in fileset("${path.module}/../../../models/stg", "*.table.json") : replace(basename(f), ".table.json", "") => {
       table_name        = replace(basename(f), ".table.json", "")
-      table_config_file = "${local.stg_models_dir}/${f}"
+      table_config_file = "${path.module}/../../../models/stg/${f}"
     }
   }
 
   dim_table_defs = {
-    for f in fileset(local.dim_models_dir, "*.table.json") : replace(basename(f), ".table.json", "") => {
+    for f in fileset("${path.module}/../../../models/dim", "*.table.json") : replace(basename(f), ".table.json", "") => {
       table_name        = replace(basename(f), ".table.json", "")
-      table_config_file = "${local.dim_models_dir}/${f}"
+      table_config_file = "${path.module}/../../../models/dim/${f}"
     }
   }
-
-  # Merge to get all table definitions from stg and dim; if duplicate keys exist, dim overrides stg
-  # Also explicitly exclude dim_region from stg to avoid confusion while migrating
-  table_defs = merge({ for k, v in local.stg_table_defs : k => v if k != "dim_region" }, local.dim_table_defs)
 }
 
 module "bq_tables" {
-  for_each   = local.table_defs
+  for_each   = local.stg_table_defs
   source     = "../../../modules/bigquery_table"
 
   project_id = var.project_id
@@ -304,134 +260,4 @@ module "bq_tables" {
   deletion_protection = false
 
   depends_on = [google_bigquery_dataset.dataset]
-}
-
-# Seed dim_region by loading a single-row JSONL from GCS (avoids DML disposition issues)
-resource "google_storage_bucket_object" "dim_region_seed" {
-  bucket = google_storage_bucket.data.name
-  name   = "seed/dim_region.jsonl"
-  content = "${jsonencode({
-    region_prefix      = var.region_prefix,
-    region_name        = var.region_name,
-    transit_authority  = var.transit_authority,
-    timezone           = var.timezone,
-    svc_boundary_hour  = var.service_boundary_hour
-  })}\n"
-
-  depends_on = [google_storage_bucket.data]
-}
-
-resource "google_bigquery_job" "seed_dim_region" {
-  project  = var.project_id
-  location = var.gcp_region
-  job_id   = "seed-dim-region-load-${var.bq_dataset}-${formatdate("YYYYMMDDHHmmss", timestamp())}"
-
-  # Ensure table and seed file exist
-  depends_on = [module.bq_tables["dim_region"], google_storage_bucket_object.dim_region_seed]
-
-  load {
-    source_uris = ["gs://${google_storage_bucket.data.name}/${google_storage_bucket_object.dim_region_seed.name}"]
-    destination_table {
-      project_id = var.project_id
-      dataset_id = var.bq_dataset
-      table_id   = "dim_region"
-    }
-    source_format     = "NEWLINE_DELIMITED_JSON"
-    write_disposition = "WRITE_TRUNCATE"
-    autodetect        = false
-  }
-}
-
-# Stable random suffix to avoid BigQuery job-id collisions across stacks/runs
-resource "random_id" "dim_region_seed" {
-  byte_length = 2 # 4 hex chars
-  keepers = {
-    project   = var.project_id
-    dataset   = var.bq_dataset
-    region    = var.gcp_region
-  }
-}
-
-# BigQuery views (build directly from SQL files under infra/models/*)
-locals {
-  models_dir   = "${path.module}/../../../models"
-  view_files   = distinct(concat(
-    tolist(fileset(local.models_dir, "fct/**/*.sql")),
-    tolist(fileset(local.models_dir, "dim/**/*.sql")),
-    tolist(fileset(local.models_dir, "agg/**/*.sql")),
-    tolist(fileset(local.models_dir, "mdl/**/*.sql")),
-    tolist(fileset(local.models_dir, "baseline/**/*.sql"))
-  ))
-  folder_views = {
-    for f in local.view_files : replace(basename(f), ".sql", "") => {
-      sql_file    = "${local.models_dir}/${f}"
-      description = "View from ${f}"
-    }
-  }
-
-  # Ensure dependency order for views that reference others
-  base_view_names      = ["fct_trip_update", "fct_vehicle_position", "fct_trip_plan", "temp_fct_vehicle_position", "temp_fct_vehicle_segment"]
-  hourly_agg_view_names = [for f in local.view_files : replace(basename(f), ".sql", "") if endswith(replace(basename(f), ".sql", ""), "_hour")]
-  daily_agg_view_names  = [for f in local.view_files : replace(basename(f), ".sql", "") if endswith(replace(basename(f), ".sql", ""), "_day")]
-
-  base_folder_views    = { for k, v in local.folder_views : k => v if contains(local.base_view_names, k) }
-  hourly_agg_folder_views = { for k, v in local.folder_views : k => v if contains(local.hourly_agg_view_names, k) }
-  daily_agg_folder_views  = { for k, v in local.folder_views : k => v if contains(local.daily_agg_view_names, k) }
-  derived_folder_views = { for k, v in local.folder_views : k => v if !contains(local.base_view_names, k) && !contains(local.hourly_agg_view_names, k) && !contains(local.daily_agg_view_names, k) }
-}
-
-# Create base views first
-module "bq_views_base" {
-  for_each = local.base_folder_views
-  source   = "../../../modules/bigquery_view"
-
-  project_id  = var.project_id
-  dataset_id  = var.bq_dataset
-  view_id     = lower(replace(each.key, "-", "_"))
-  sql_file    = each.value.sql_file
-  description = each.value.description
-
-  depends_on = [google_bigquery_dataset.dataset, module.bq_tables]
-}
-
-# Then create hourly aggregation views that depend on base views
-module "bq_views_hourly_agg" {
-  for_each = local.hourly_agg_folder_views
-  source   = "../../../modules/bigquery_view"
-
-  project_id  = var.project_id
-  dataset_id  = var.bq_dataset
-  view_id     = lower(replace(each.key, "-", "_"))
-  sql_file    = each.value.sql_file
-  description = each.value.description
-
-  depends_on = [module.bq_views_base]
-}
-
-# Then create daily aggregation views that depend on hourly aggregation views
-module "bq_views_daily_agg" {
-  for_each = local.daily_agg_folder_views
-  source   = "../../../modules/bigquery_view"
-
-  project_id  = var.project_id
-  dataset_id  = var.bq_dataset
-  view_id     = lower(replace(each.key, "-", "_"))
-  sql_file    = each.value.sql_file
-  description = each.value.description
-
-  depends_on = [module.bq_views_hourly_agg]
-}
-
-# Then create derived views that depend on all other views
-module "bq_views" {
-  for_each = local.derived_folder_views
-  source   = "../../../modules/bigquery_view"
-
-  project_id  = var.project_id
-  dataset_id  = var.bq_dataset
-  view_id     = lower(replace(each.key, "-", "_"))
-  sql_file    = each.value.sql_file
-  description = each.value.description
-
-  depends_on = [module.bq_views_daily_agg]
 }

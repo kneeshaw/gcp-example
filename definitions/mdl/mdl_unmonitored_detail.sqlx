@@ -1,0 +1,42 @@
+config {
+  type: "view",
+  schema: ${vars.fct_schema},
+  tags: ["mdl", "unmonitored", "detail"]
+}
+
+WITH lagged_positions AS (
+  SELECT
+    service_date,
+    vehicle_id,
+    route_mode,
+    timestamp_utc,
+    latitude,
+    longitude,
+    is_unmonitored_movement,
+    update_interval_seconds,
+    position_delta_m,
+    LAG(latitude) OVER (PARTITION BY vehicle_id ORDER BY timestamp_utc) AS prev_latitude,
+    LAG(longitude) OVER (PARTITION BY vehicle_id ORDER BY timestamp_utc) AS prev_longitude,
+    LAG(timestamp_utc) OVER (PARTITION BY vehicle_id ORDER BY timestamp_utc) AS prev_timestamp_utc
+  FROM ${ref("fct_vehicle_position")}
+)
+SELECT
+  lp.timestamp_utc AS movement_end_utc,
+  lp.prev_timestamp_utc AS movement_start_utc,
+  lp.service_date,
+  lp.vehicle_id,
+  lp.route_mode,
+  lp.prev_latitude AS start_lat,
+  lp.prev_longitude AS start_lon,
+  lp.latitude AS end_lat,
+  lp.longitude AS end_lon,
+  lp.update_interval_seconds AS gap_duration_seconds,
+  lp.position_delta_m AS gap_distance_m
+FROM lagged_positions lp
+WHERE
+  lp.is_unmonitored_movement
+  AND lp.prev_latitude IS NOT NULL
+ORDER BY
+  lp.service_date DESC,
+  lp.vehicle_id,
+  movement_start_utc;

@@ -1,0 +1,33 @@
+config {
+  type: "view",
+  schema: ${vars.fct_schema},
+  tags: ["mdl", "unmonitored", "h3", "daily"]
+}
+
+WITH base AS (
+  SELECT
+    service_date,
+    h3_index,
+    route_mode,
+    position_count,
+    unmonitored_distance_m,
+    AVG(unmonitored_distance_m) OVER (
+      PARTITION BY h3_index, route_mode
+      ORDER BY service_date
+      ROWS BETWEEN 27 PRECEDING AND CURRENT ROW
+    ) AS rolling_28_day_avg_distance_m
+  FROM ${ref("agg_position_h3_day")}
+)
+SELECT
+  b.service_date,
+  b.h3_index,
+  b.route_mode,
+  b.position_count,
+  b.unmonitored_distance_m,
+  b.rolling_28_day_avg_distance_m,
+  bigfunctions.australia_southeast1.h3("cellToBoundary", JSON_ARRAY(b.h3_index)) AS h3_geometry
+FROM base b
+ORDER BY
+  b.service_date,
+  b.h3_index,
+  b.route_mode;

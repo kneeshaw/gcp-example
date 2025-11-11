@@ -1,0 +1,49 @@
+config {
+  type: "view",
+  schema: ${vars.fct_schema},
+  tags: ["dim"]
+}
+
+WITH feed_info_cleaned AS (
+  SELECT
+    feed_hash,
+    feed_publisher_name,
+    feed_version,
+    PARSE_DATE('%Y%m%d', CAST(feed_start_date AS STRING)) AS feed_start_date,
+    PARSE_DATE('%Y%m%d', CAST(feed_end_date AS STRING)) AS feed_end_date_declared,
+    MIN(created_at) AS ingested_at_utc
+  FROM ${ref("stg_feed_info")}
+  WHERE feed_start_date IS NOT NULL
+  GROUP BY 1, 2, 3, 4, 5
+),
+feeds_ranked AS (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY feed_start_date ORDER BY ingested_at_utc DESC) AS rn
+  FROM feed_info_cleaned
+),
+feeds_with_effective_dates AS (
+  SELECT
+    feed_hash,
+    feed_publisher_name,
+    feed_version,
+    ingested_at_utc,
+    feed_start_date AS feed_start_date_declared,
+    feed_end_date_declared,
+    feed_start_date AS effective_from_date,
+    LEAD(feed_start_date) OVER (ORDER BY feed_start_date) - 1 AS effective_to_date
+  FROM feeds_ranked
+  WHERE rn = 1
+)
+SELECT
+  feed_hash,
+  feed_publisher_name,
+  feed_version,
+  ingested_at_utc,
+  feed_start_date_declared,
+  feed_end_date_declared,
+  effective_from_date,
+  effective_to_date,
+  (effective_to_date IS NULL) AS is_current
+FROM feeds_with_effective_dates
+ORDER BY effective_from_date;

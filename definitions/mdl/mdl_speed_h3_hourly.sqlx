@@ -1,0 +1,45 @@
+config {
+  type: "view",
+  schema: ${vars.fct_schema},
+  tags: ["mdl", "speed", "h3", "hourly"]
+}
+
+WITH speed_data AS (
+  SELECT
+    service_date,
+    hour,
+    h3_index,
+    route_mode,
+    avg_speed_kmh
+  FROM ${ref("agg_speed_h3_hour")}
+),
+rolling_avg AS (
+  SELECT
+    service_date,
+    hour,
+    h3_index,
+    route_mode,
+    avg_speed_kmh,
+    AVG(avg_speed_kmh) OVER (
+      PARTITION BY h3_index, hour, route_mode
+      ORDER BY service_date
+      ROWS BETWEEN 27 PRECEDING AND CURRENT ROW
+    ) AS avg_speed_kmh_28_day_rolling
+  FROM speed_data
+)
+SELECT
+  service_date,
+  hour,
+  h3_index,
+  route_mode,
+  avg_speed_kmh,
+  avg_speed_kmh_28_day_rolling,
+  SAFE_DIVIDE(
+    avg_speed_kmh - avg_speed_kmh_28_day_rolling,
+    avg_speed_kmh_28_day_rolling
+  ) AS pct_change_from_28_day_avg
+FROM rolling_avg
+ORDER BY
+  service_date,
+  hour,
+  h3_index;
